@@ -1,0 +1,117 @@
+--Copyright Robert C. Taylor, All Rights Reserved
+
+import Test.Framework (defaultMain, testGroup)
+import Test.Framework.Providers.QuickCheck2 (testProperty)
+import Test.QuickCheck
+import Test.Framework.Providers.HUnit
+import Test.HUnit
+import Data.Array
+import Data.Complex
+import Data.Word
+import System.IO.Unsafe
+import OFDMRadar.DSP.FFT
+import OFDMRadar.DSP.Correlation
+import OFDMRadar.Math.Misc
+import qualified Data.Vector as V
+import Data.List
+
+dataSize1 = [1 :+ 0]
+fftDataSize1 = [1 :+ 0]
+ifftDataSize1 = [1 :+ 0]
+
+dataSize2 = [1 :+ 0, 3 :+ 6]
+fftDataSize2 = [4 :+ 6, (-2) :+ (-6)]
+ifftDataSize2 = [2 :+ 3, (-1) :+ (-3)]
+
+dataSize4 = [1:+0,3:+6,7:+8,3:+0]
+fftDataSize4 = [14 :+ 14, 0 :+ (-8.0), 2 :+ 2, (-12) :+ (-8)]
+ifftDataSize4 = [3.5 :+ 3.5, (-3.0) :+ (-2.0),  0.5 :+ 0.5,  0.0 :+ (-2.0)]
+
+dataSize8 = [1:+0,2:+0,3:+0,4:+0,5:+0,6:+0,7:+0,8:+0]
+fftDataSize8 = [36 :+ 0.000000,  (-4) :+ 9.656854,  (-4) :+ 4.000000, (-4) :+ 1.656854, (-4) :+ 0.000000, (-4) :+ (-1.656854), (-4) :+ (-4.000000), (-4) :+ (-9.656854)]
+ifftDataSize8 = [ 4.5 :+ 0.0000000, (-0.5) :+ (-1.2071068), (-0.5) :+ (-0.5000000), (-0.5) :+ (-0.2071068), (-0.5) :+ 0.0000000, (-0.5) :+ 0.2071068, (-0.5) :+ 0.5000000, (-0.5) :+ 1.2071068]
+
+dataSize16 = [1:+0,2:+0,3:+0,4:+0,5:+0,6:+0,7:+0,8:+0,9 :+ 0, 10 :+ 0, 11 :+ 0, 12 :+ 0, 13 :+ 0, 14 :+ 0, 15 :+ 0, 16 :+ 0]
+fftDataSize16 =  [136 :+ 0.000000,  (-8) :+ 40.218716,  (-8) :+ 19.313708,   (-8) :+ 11.972846,  (-8) :+ 8.000000, (-8) :+ 5.345429,  (-8) :+ 3.313708,  (-8) :+ 1.591299,  (-8) :+ 0.000000,  (-8) :+  (-1.591299), (-8) :+ (-3.313708),  (-8) :+ (-5.345429),  (-8) :+ (-8.000000),  (-8) :+ (-11.972846),  (-8) :+ (-19.313708), (-8) :+ (-40.218716)]
+ifftDataSize16 =  [8.5 :+ 0.0000000, (-0.5) :+ (-2.5136697), (-0.5) :+ (-1.2071068), (-0.5) :+ (-0.7483029),                                                                                                                                                        (-0.5) :+ (-0.5000000), (-0.5) :+ (-0.3340893), (-0.5) :+ (-0.2071068), (-0.5) :+ (-0.0994562),                                                                                                                                                   (-0.5) :+ (0.0000000), (-0.5) :+ (0.0994562), (-0.5) :+ (0.2071068), (-0.5) :+ 0.3340893, (-0.5) :+ 0.5000000, (-0.5) :+ (0.7483029),  (-0.5) :+ 1.2071068,  (-0.5) :+ 2.5136697]
+
+
+
+doubleError :: Double
+doubleError = 0.005
+
+compareComplexDouble (real1 :+ imag1) (real2 :+ imag2) = (abs (real1 - real2) < doubleError) && (abs (imag1 - imag2) < doubleError)
+
+fftQuickTest :: [(Double, Double)] -> Bool
+fftQuickTest input = all (id) $ zipWith compareComplexDouble (ifft $ fft testInput) (testInput)
+    where testInput = (map (\(a, b) -> a :+ b) input) ++ replicate ((2^(discretePowerOf2 $ length input)) - (length input)) (0 :+ 0)
+          fft = createFft (2^(discretePowerOf2 $ length input)) (-1)
+          ifft = createFft (2^(discretePowerOf2 $ length input)) (1) 
+          
+doFftTest :: Int -> [Complex Double] -> [Complex Double] -> [Complex Double] -> Assertion
+doFftTest size iData fftComp iFftComp = assertEqual "Not all test passed" True $ fftTest && ifftTest && equalWayOneTest && equalWayTwoTest
+    where fftTest = all (id) $ zipWith compareComplexDouble (fft iData) fftComp
+          ifftTest = all (id) $ zipWith compareComplexDouble (ifft iData) iFftComp
+          equalWayOneTest = all (id) $ zipWith compareComplexDouble (ifft $ fft iData) iData
+          equalWayTwoTest = all (id) $ zipWith compareComplexDouble (fft $ ifft iData) iData
+          fft = createFft size (-1)
+          ifft = createFft size (1)
+          
+fftQuickTestV :: [(Double, Double)] -> Bool
+fftQuickTestV input = all (id) $ zipWith compareComplexDouble (V.toList $ ifft $ fft $ V.fromList testInput) (testInput)
+    where testInput = (map (\(a, b) -> a :+ b) input) ++ replicate ((2^(discretePowerOf2 $ length input)) - (length input)) (0 :+ 0)
+          fft = createFftV (2^(discretePowerOf2 $ length input)) (-1)
+          ifft = createFftV (2^(discretePowerOf2 $ length input)) (1) 
+          
+doFftTestV :: Int -> [Complex Double] -> [Complex Double] -> [Complex Double] -> Assertion
+doFftTestV size iData fftComp iFftComp = assertEqual "Not all test passed" True $ fftTest && ifftTest && equalWayOneTest && equalWayTwoTest
+    where fftTest = all (id) $ zipWith compareComplexDouble (V.toList $ fft $ V.fromList iData) fftComp
+          ifftTest = all (id) $ zipWith compareComplexDouble (V.toList $ ifft $ V.fromList iData) iFftComp
+          equalWayOneTest = all (id) $ zipWith compareComplexDouble (V.toList $ ifft $ fft $ V.fromList iData) iData
+          equalWayTwoTest = all (id) $ zipWith compareComplexDouble (V.toList $ fft $ ifft $ V.fromList iData) iData
+          fft = createFftV size (-1)
+          ifft = createFftV size (1)
+
+correlationKernelTest_prop :: [(Double, Double)] -> [(Double, Double)] -> Bool
+correlationKernelTest_prop in1 in2 = if in1 == [] then
+                                        actualOutput == [] 
+                                                  else all (id) $ zipWith compareComplexDouble (expectedOutput) (actualOutput)
+                                                  
+    where actualOutput = correlate impulse signal
+          
+          expectedOutput = map (\a -> sum $ zipWith (*) (map (conjugate) impulse) a) (init $ tails signal)
+          
+          signal = map (\(a, b) -> (a :+ b)) in1
+          impulse = map (\(a, b) -> (a :+ b)) in2
+          
+tests = [ 
+          testGroup "FFT, IFFT list based tests" [
+           testProperty "Various FFT size tests" fftQuickTest,
+           testCase "Fft Size one" (doFftTest 1 dataSize1 fftDataSize1 ifftDataSize1),
+           testCase "Fft Size two" (doFftTest 2 dataSize2 fftDataSize2 ifftDataSize2),
+           testCase "Fft Size four" (doFftTest 4 dataSize4 fftDataSize4 ifftDataSize4),
+           testCase "Fft Size eight" (doFftTest 8 dataSize8 fftDataSize8 ifftDataSize8),
+           testCase "Fft Size sixteen" (doFftTest 16 dataSize16 fftDataSize16 ifftDataSize16)
+           ],
+          testGroup "FFT, IFFT vector based tests" [
+           testProperty "Various FFT size tests" fftQuickTestV,
+           testCase "Fft Size one" (doFftTestV 1 dataSize1 fftDataSize1 ifftDataSize1),
+           testCase "Fft Size two" (doFftTestV 2 dataSize2 fftDataSize2 ifftDataSize2),
+           testCase "Fft Size four" (doFftTestV 4 dataSize4 fftDataSize4 ifftDataSize4),
+           testCase "Fft Size eight" (doFftTestV 8 dataSize8 fftDataSize8 ifftDataSize8),
+           testCase "Fft Size sixteen" (doFftTestV 16 dataSize16 fftDataSize16 ifftDataSize16)
+           ],
+          testGroup "Correlation" [
+           testProperty "Random Correlation test" correlationKernelTest_prop
+           ],
+          testGroup "Cyclic Shift List Tests" cyclicListTestCases,
+          testGroup "Cyclic Shift List Tests" cyclicVectorTestCases,
+          testGroup "Cyclic Matrix Shift List Tests" cyclicMatrixListTestCases,
+          testGroup "Cyclic Matrix Shift Vector Tests" cyclicMatrixVectorTestCases
+           
+        ]
+
+main :: IO ()
+main = defaultMain tests
+
+

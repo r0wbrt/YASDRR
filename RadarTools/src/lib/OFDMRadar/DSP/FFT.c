@@ -333,7 +333,7 @@ void fft(double * signal, double * coefs, int * workArea, int direction, int siz
  w[] and ip[] are compatible with all routines.
  */
 
-
+/* Broken FFI code. Currently causes a segment fault when used. */
 void cdftOptInit(int n, int *ip, double *w)
 {
     void makewt(int nw, int *ip, double *w);
@@ -368,6 +368,7 @@ void cdftOpt(int n, int isgn, double *a, int *ip, double *w)
 		cftfsub(n, a, w);
 	}
 }
+/** End broken FFI code. */
 
 void cdft(int n, int isgn, double *a, int *ip, double *w)
 {

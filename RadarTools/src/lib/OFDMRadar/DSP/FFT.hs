@@ -82,7 +82,7 @@ cyclicCoef shift size pos = cis $ (top) / (bottom)
           bottom = fromIntegral(size)
           
           
--- | Cyclic sjifts a matrix by a given shift
+-- | Cyclic shifts a matrix by a given shift
 cyclicMutateMatrixV shift size matrix = V.map multiplyColumn matrix
 
     --Multiply each column entry with the cyclic shift coef

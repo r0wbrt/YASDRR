@@ -20,6 +20,7 @@ cabal-version:       >=1.10
 library
     build-depends:    base >=4.8 && <4.9, vector, unagi-chan, array, bytestring, binary >= 0.8.4.0 && < 0.9
     default-language: Haskell2010
+    ghc-options:      -Wall -Werror
     hs-source-dirs:   src/lib
     c-sources: src/lib/OFDMRadar/DSP/FFT.c
     exposed-modules:  OFDMRadar.DSP.FFT
@@ -95,6 +96,7 @@ test-suite test-IO
                       
 executable             tx
   main-is:             Main.hs
+  ghc-options:      -Wall -Werror
   -- other-modules:       
   -- other-extensions:    
   build-depends:
@@ -146,6 +148,7 @@ executable             tx
   
 executable             rx
   main-is:             Main.hs
+  ghc-options:      -Wall -Werror
    --other-modules:       
    --other-extensions:    
   build-depends:       base >=4.8 && <4.9,

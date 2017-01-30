@@ -1,5 +1,19 @@
 --Copyright Robert C. Taylor
 
+{- |
+Module      :  OFDMRadar.Math.Misc
+Description :  Misc math functions
+Copyright   :  (c) Robert C. Taylor
+License     :  Apache 2.0
+
+Maintainer  :  r0wbrt@gmail.com
+Stability   :  unstable 
+Portability :  portable 
+
+Several mathmatical functions used as primitives by other more complex 
+operations in OFDMRadar tools library.
+-}
+
 module OFDMRadar.Math.Misc where
 
 import Data.Bits
@@ -7,10 +21,12 @@ import qualified Data.Vector as V
 
 --Converts a value to the nearest value of 2 assuming the value is a power of 2.
 discretePowerOf2 :: Int -> Int
-discretePowerOf2 number = if (setBit 0 lowerValue) < number then lowerValue + 1 else lowerValue
+discretePowerOf2 number
+    | setBit 0 lowerValue < number  = lowerValue + 1
+    | otherwise                     = lowerValue
     where lowerValue = (finiteBitSize number - 1) - countLeadingZeros number
  
- 
-getVectorMatrixRow rowNumber vectorList = V.map (\vector -> vector V.! rowNumber) vectorList
+getVectorMatrixRow :: Int -> V.Vector (V.Vector a) -> V.Vector a
+getVectorMatrixRow rowNumber = V.map (V.! rowNumber)
 
 

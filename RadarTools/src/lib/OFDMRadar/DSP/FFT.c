@@ -4,42 +4,16 @@
 #include <math.h>
 
 
-void cdft(int n, int isgn, double *a, int *ip, double *w);
-
-//workArea = 2 + sqrt(size)
-//workArea(0) = 0 on first call.
-//coefs = size / 2
-
-//No memory allocation occurs in this routine. Expects all memory allocation to be done by calling code.
-//Non-thread safe. Ooura's fft functions use workArea while running. Each fft should have its own unique workArea, though this work
-//area can be used multiple times by the same fft function.
-void fastConvolution(double * impulse, double * signal, double * coefs, int * workArea, int size)
-{
-    void cdftOpt(int n, int isgn, double *a, int *ip, double *w);
-    cdftOpt(2 * size, -1, impulse, workArea, coefs);    
-    cdftOpt(2 * size, -1, signal, workArea, coefs);
-    
-    
-    for(int i = 0; i < size; i++)
-    {
-        double a = signal[2*i];
-        double b = signal[2*i + 1];
-        double c = impulse[2*i];
-        double d = impulse[2*i + 1];
-        
-        signal[2*i] = a*c - b*d;
-        signal[2*i + 1] = a*d + b*c;
-    }
-    
-    cdftOpt(2*size, 1, signal, workArea, coefs);
-    
-    for (int j = 0; j <= 2 * size - 1; j++) 
-    {
-        signal[j] *= 1.0 / size;
-    }
-
-}
-
+/**
+ * Calculates the foward and backward fft transform over an array of data.
+ * @param signal Input signal array to calculate the FFT in place over. 
+ * @param coefs Location to store the Cos/Sin tables used to compute the FFT of the iput data.
+ * Size should be (size/2) - 1.
+ * @param workArea Additional area used when computing the FFT of the input data. Should have length greater
+ * then 2 + sqrt(size).
+ * @param direction Determines if the transform is forward(-1) of backward(1).
+ * @param size The size of the FFT. Should be a power of 2, otherwise the algorithm in use will smash the stack.
+ */
 void fft(double * signal, double * coefs, int * workArea, int direction, int size)
 {
     void cdft(int n, int isgn, double *a, int *ip, double *w);
@@ -56,7 +30,11 @@ void fft(double * signal, double * coefs, int * workArea, int direction, int siz
         }    
     }
 }
-    
+
+
+
+/**Begin Ooura's code*/
+
 /*
  Fast Fourier/Cosine/Sine Transform
  dimension   :one
@@ -332,43 +310,6 @@ void fft(double * signal, double * coefs, int * workArea, int direction, int siz
  The cos/sin table is recalculated when the larger table required.
  w[] and ip[] are compatible with all routines.
  */
-
-/* Broken FFI code. Currently causes a segment fault when used. */
-void cdftOptInit(int n, int *ip, double *w)
-{
-    void makewt(int nw, int *ip, double *w);
-    ip[0] = 0;
-	if (n > (ip[0] << 2))
-	{
-		makewt(n >> 2, ip, w);
-	}  
-}
-void cdftOpt(int n, int isgn, double *a, int *ip, double *w)
-{
-	void bitrv2(int n, int *ip, double *a);
-	void bitrv2conj(int n, int *ip, double *a);
-	void cftfsub(int n, double *a, double *w);
-	void cftbsub(int n, double *a, double *w);
-
-	if (n > 4)
-	{
-		if (isgn >= 0)
-		{
-			bitrv2(n, ip + 2, a);
-			cftfsub(n, a, w);
-		}
-		else
-		{
-			bitrv2conj(n, ip + 2, a);
-			cftbsub(n, a, w);
-		}
-	}
-	else if (n == 4)
-	{
-		cftfsub(n, a, w);
-	}
-}
-/** End broken FFI code. */
 
 void cdft(int n, int isgn, double *a, int *ip, double *w)
 {

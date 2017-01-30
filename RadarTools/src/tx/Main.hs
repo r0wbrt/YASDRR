@@ -15,11 +15,10 @@ import OFDMRadar.Math.Misc
 import Data.List.Split
 import System.Random
 import OFDMRadar.IO.ComplexSerialization
-import qualified OFDMRadar.DSP.FFT as RSTF
-import qualified Data.Array as Array
 import qualified OFDMRadar.SDR.OFDMModulation as SdrOFDMMod
 
 --Default number of carriers to generate. 
+defaultNumberOfCarriers :: Int
 defaultNumberOfCarriers = 32
 
 --Data structure where all the options will post-processing of commandline input.
@@ -38,7 +37,7 @@ data ProgramOptions = ProgramOptions { optionsTransmitOutputWriter  :: B.ByteStr
                                         , optionsNumberOfFrames :: Int
                                         }
         
-                                        
+startOptions :: ProgramOptions
 startOptions = ProgramOptions { optionsTransmitOutputWriter = B.hPut stdout
                                 , optionsCloseTransmitOutputWriter = hClose stdout
                                 , optionsSymbolOutputWriter = B.hPut stdout
@@ -51,7 +50,7 @@ startOptions = ProgramOptions { optionsTransmitOutputWriter = B.hPut stdout
                                 --Number of carriers equal number of default number of carriers
                                 , optionsNumberOfCarriers = defaultNumberOfCarriers
                                 --Scale the BPSK signal to be normalized with power of 1.0
-                                , optionsConstellationPoints = [(0, (1.0 / fromIntegral(defaultNumberOfCarriers)) :+ 0), (1, (-1.0 / fromIntegral(defaultNumberOfCarriers)) :+ 0)]
+                                , optionsConstellationPoints = [(0, (1.0 / fromIntegral defaultNumberOfCarriers) :+ 0), (1, (-1.0 / fromIntegral defaultNumberOfCarriers) :+ 0)]
                                 
                                 , optionsSCQ11Output = False
                                 , optionsRandomData = False
@@ -61,6 +60,7 @@ startOptions = ProgramOptions { optionsTransmitOutputWriter = B.hPut stdout
                                 
 --The actual program options that describe how program options will
 --be populated and what the options do.
+options :: [OptDescr (ProgramOptions -> IO ProgramOptions)]
 options = 
     [ GetOpt.Option ['o'] ["signalOutput"] 
         (GetOpt.ReqArg (\path opt -> do
@@ -85,7 +85,7 @@ options =
      , GetOpt.Option ['h', '?'] ["help", "about"] (GetOpt.NoArg (\_ -> do
                                                                 prg <- getProgName
                                                                 hPutStrLn stderr (GetOpt.usageInfo ("Usage: "++prg++" [OPTIONS...]") options) 
-                                                                exitWith ExitSuccess)) "Show this help message"
+                                                                exitSuccess)) "Show this help message"
      , GetOpt.Option [] ["scQ11Output"]
         (GetOpt.NoArg (\opt -> return $ opt { optionsSCQ11Output = True })) "Optionally makes signalOutput SC Q11 encoded for 12 bit DACs"
      , GetOpt.Option [] ["randomData"]
@@ -96,6 +96,7 @@ options =
                 
         
 --Avoids throwing an EOF exception
+safeReader :: Handle -> Int -> IO B.ByteString
 safeReader handle size = do
     result <- hIsEOF handle
     if result then
@@ -104,6 +105,7 @@ safeReader handle size = do
         B.hGet handle size
         
 --Entry Function to the program
+main :: IO ()
 main = do
     arguments <- getArgs
     
@@ -115,8 +117,8 @@ main = do
              opt <- foldl (>>=) (return startOptions) actions
              
              --Some useful constants
-             let constellationPower = (discretePowerOf2 $ length $ optionsConstellationPoints opt) 
-             let readLength = div (constellationPower * (optionsNumberOfCarriers opt)) 8
+             let constellationPower = discretePowerOf2 $ length $ optionsConstellationPoints opt
+             let readLength = div (constellationPower * optionsNumberOfCarriers opt) 8
              let constellationArray = Array.array (0,fromIntegral (length $ optionsConstellationPoints opt) - 1) (optionsConstellationPoints opt)
              
              --Init the Thread Functions
@@ -126,7 +128,7 @@ main = do
                                         randomReaderThread readLength
                     
              let dataWriterWorker = writerThread (optionsSymbolOutputWriter opt) (optionsTransmitOutputWriter opt) 
-             let dataWorker = workerThread (optionsNumberOfCarriers opt) (optionsCyclicPrefixLength opt) (optionsLengthOfSilence opt) (fromIntegral . toInteger $ constellationPower) (constellationArray) (optionsSCQ11Output opt)
+             let dataWorker = workerThread (optionsNumberOfCarriers opt) (optionsCyclicPrefixLength opt) (optionsLengthOfSilence opt) (fromIntegral . toInteger $ constellationPower) constellationArray (optionsSCQ11Output opt)
              
              --Begin thread execution
              shardHandle <- RMS.shardResource dataReaderWorker (optionsNumberOfFrames opt) dataWriterWorker () dataWorker []
@@ -140,29 +142,32 @@ main = do
              optionsCloseDataInputReader opt
              
              --Quit
-             exitWith ExitSuccess
+             exitSuccess
              
          (_, _, errors) -> do
              
               --Write Error
-              (hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors)
+              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
               
               --Quit
               exitFailure
         
 
 --Parses a list of 3-tuples into ordered pairs for use as a signal constellation when data encoding
-programOptionsConstellationComprehender :: [Char] -> [(Word8,Complex Double)]
+programOptionsConstellationComprehender :: String -> [(Word8,Complex Double)]
 programOptionsConstellationComprehender string = constellation
     
-    where constellation = map parser $ map (splitOn ",") $ splitOn " " string 
-          parser (x:y:z:[]) = (read (tail x)::Word8, (read y::Double) :+ (read (init z)::Double) )
+    where constellation = map (parser . splitOn ",") $ splitOn " " string 
+          parser [x, y, z] = (read (tail x)::Word8, (read y::Double) :+ (read (init z)::Double) )
+          parser _ = error "Incorrect constellation pattern."
         
 --Reads Data from a file.
+readerThread :: (Int -> IO B.ByteString) -> Int -> Int -> 
+                        IO (Maybe (B.ByteString, Int))
 readerThread _ _ 0 = return Nothing
 readerThread blockReader blockSize state = do
     
-    let newState = if state /= -1 then (state - 1) else (-1)
+    let newState = if state /= -1 then state - 1 else (-1)
     block <- blockReader blockSize
     if B.length block /= blockSize then
         return Nothing
@@ -171,6 +176,7 @@ readerThread blockReader blockSize state = do
         
 
 --Generates random data instead of using a file
+randomReaderThread :: Int -> Int -> IO (Maybe (B.ByteString, Int))
 randomReaderThread _ 0 = return Nothing
 randomReaderThread blockSize state = do
     
@@ -178,14 +184,16 @@ randomReaderThread blockSize state = do
     
     let list = take blockSize (randoms source :: [Word8])
     
-    let newState = if state /= -1 then (state - 1) else (-1)
+    let newState = if state /= -1 then state - 1 else (-1)
     
     return $ Just (B.pack list, newState)
     
 
     
 --Writes two streams to a file
-writerThread symbolBlockWriter signalBlockWriter state (symbolBlock, signalBlock) = do
+writerThread :: (B.ByteString -> IO ()) -> (B.ByteString -> IO ()) -> state
+                    -> (B.ByteString, B.ByteString) -> IO (Maybe ())
+writerThread symbolBlockWriter signalBlockWriter _ (symbolBlock, signalBlock) = do
     
     --Write symbol first since if both are being streamed to stdout then the the symbol goes first.
     symbolBlockWriter symbolBlock
@@ -195,13 +203,16 @@ writerThread symbolBlockWriter signalBlockWriter state (symbolBlock, signalBlock
 
     
 --Encodes a data block into a signal
-workerThread numOfCarriers cyclicPrefixSize lengthOfSilence symbolSize constellationArray sc11Format state dataBlock = do
+workerThread :: Int -> Int -> Int -> Int -> Array.Array Word8 (Complex Double)
+                    -> Bool -> [Int] -> B.ByteString 
+                    -> IO (Maybe ((B.ByteString, B.ByteString), [Int]))
+workerThread numOfCarriers cyclicPrefixSize lengthOfSilence symbolSize constellationArray sc11Format _ dataBlock = do
     
     let symbol = SdrOFDMMod.encodeOFDMSymbol symbolSize constellationArray numOfCarriers dataBlock
     
     let transmitSignal = SdrOFDMMod.extendOFDMSymbol cyclicPrefixSize lengthOfSilence symbol
         
     return $ if sc11Format then
-                Just ((serializeBlock (complexFloatSerializer) symbol, serializeBlock (complexSC11Serializer) transmitSignal),[])
+                Just ((serializeBlock complexFloatSerializer symbol, serializeBlock complexSC11Serializer transmitSignal),[])
              else 
-                Just ((serializeBlock (complexFloatSerializer) symbol, serializeBlock (complexFloatSerializer) transmitSignal),[])
+                Just ((serializeBlock complexFloatSerializer symbol, serializeBlock complexFloatSerializer transmitSignal),[])

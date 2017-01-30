@@ -1,17 +1,14 @@
 --Copyright Robert C. Taylor, All Rights Reserved
 
 import Data.Complex
-import Data.Typeable
 import qualified OFDMRadar.Threading.Sharding as RMS
 import qualified Data.ByteString as B
-import Control.Exception
 import System.Environment
 import System.Console.GetOpt as GetOpt
 import System.IO
 import System.Exit
 import Data.List    
 import Data.List.Split       
-import Data.List
 import qualified Data.Vector as V
 import OFDMRadar.IO.ComplexSerialization
 import OFDMRadar.SDR.OFDMModulation
@@ -31,6 +28,7 @@ data ProgramOptions = ProgramOptions { optionsOutputWriter :: B.ByteString -> IO
                 
                 
 --Default arguments
+startOptions :: ProgramOptions
 startOptions = ProgramOptions   { optionsOutputWriter = B.hPut stdout
                                 , optionsCloseOutputWriter = hClose stdout
                                 , optionsInputGetter = B.hGet stdin
@@ -44,24 +42,24 @@ startOptions = ProgramOptions   { optionsOutputWriter = B.hPut stdout
                 
                 
 --Program Options
-options :: [OptDescr (ProgramOptions -> IO ProgramOptions)]
-options = 
+programOptions :: [OptDescr (ProgramOptions -> IO ProgramOptions)]
+programOptions = 
     [ GetOpt.Option ['i'] ["inputStream"] (GetOpt.ReqArg (\path opt -> do
-                                                                handle <- openBinaryFile path ReadMode
-                                                                return opt {optionsInputGetter = (safeReader handle)})
+                                                                h <- openBinaryFile path ReadMode
+                                                                return opt {optionsInputGetter = safeReader h})
         "[Signal Input Path]" ) "The signal stream to process for radar returns"
     , GetOpt.Option ['o'] ["outputStream"] (GetOpt.ReqArg (\path opt -> do
-                                                                handle <- openBinaryFile path WriteMode
-                                                                return opt {optionsOutputWriter = (B.hPut handle), optionsCloseOutputWriter = (hClose handle)}) "[Signal Output Path]" ) "The path to write the radar processed output to. Output is double i/q format."
+                                                                h <- openBinaryFile path WriteMode
+                                                                return opt {optionsOutputWriter = B.hPut h, optionsCloseOutputWriter = hClose h}) "[Signal Output Path]" ) "The path to write the radar processed output to. Output is double i/q format."
     , GetOpt.Option ['y'] ["symbolStream"] (GetOpt.ReqArg (\path opt -> do
-                                                                handle <- openBinaryFile path ReadMode
-                                                                return opt {optionsImpulseGetter = (safeReader handle)}) "[Symbol Input Path]" ) "The path to read the last symbol transmitted by the radar from"
+                                                                h <- openBinaryFile path ReadMode
+                                                                return opt {optionsImpulseGetter = safeReader h}) "[Symbol Input Path]" ) "The path to read the last symbol transmitted by the radar from"
     , GetOpt.Option ['s'] ["symbolSize"] (GetOpt.ReqArg (\size opt -> return opt { optionsImpulseSize = read size::Int } )  "[Symbol Size]" )  "The size in samples of a radar symbol"
     , GetOpt.Option ['d'] ["dwellInterval"] (GetOpt.ReqArg (\interval opt -> return opt { optionsInputSize = read interval::Int } ) "[Dwell Time]")  "The number of samples to process for each pulse"
     , GetOpt.Option ['h', '?'] ["help", "about"] (GetOpt.NoArg (\_ -> do
                                                                 prg <- getProgName
-                                                                hPutStrLn stderr (GetOpt.usageInfo ("Usage: "++prg++" [OPTIONS...]") options) 
-                                                                exitWith ExitSuccess)) "Show this help message"
+                                                                hPutStrLn stderr (GetOpt.usageInfo ("Usage: "++prg++" [OPTIONS...]") programOptions) 
+                                                                exitSuccess)) "Show this help message"
     , GetOpt.Option ['p'] ["dopplerInterval"] (GetOpt.ReqArg (\interval opt -> return opt { optionsDopplerSize = read interval::Int } ) "[Number of Pulses]")  "The number of pulses to perform doppler processing over"
     , GetOpt.Option [] ["cyclicShifts"] (GetOpt.ReqArg (\string opt -> return opt { optionsInputCyclicShifts = processCyclicShifts string } ) "[List of cyclic Shifts]") "Cyclic shifts to perform upon the input signal. \r\nComma delimited list of numbers or number expansion. Ex 1,2,3, which is equivalent to 1:3:1.\r\nCan combine numbers with expansion operations, eg \"-2:2:.25,-5,5,-10,10\""
     , GetOpt.Option [] ["scQ11Input"]
@@ -70,16 +68,18 @@ options =
     
     
 --Avoids throwing an EOF exception
-safeReader handle size = do
-    result <- hIsEOF handle
+safeReader :: Handle -> Int -> IO B.ByteString
+safeReader h size = do
+    result <- hIsEOF h
     if result then
         return B.empty
     else
-        B.hGet handle size
-    
+        B.hGet h size
+        
+main :: IO ()
 main = do
     arguments <- getArgs
-    case GetOpt.getOpt GetOpt.RequireOrder options arguments of
+    case GetOpt.getOpt GetOpt.RequireOrder programOptions arguments of
           (actions, [], []) -> do
               options <- foldl (>>=) (return startOptions) actions
               
@@ -89,11 +89,11 @@ main = do
               
               let inputByteSize = if optionsSCQ11Input options then 4 else 8
               
-              let inputReader = (optionsInputGetter options) $ ((optionsInputSize options) * inputByteSize) * (optionsDopplerSize options)
-              let impulseReader = (optionsImpulseGetter options) ((optionsImpulseSize options) * 8) 
+              let inputReader = optionsInputGetter options $ (optionsInputSize options * inputByteSize) * optionsDopplerSize options
+              let impulseReader = optionsImpulseGetter options (optionsImpulseSize options * 8) 
               
               let workerThread = radarWorkerThread (fromIntegral (optionsInputSize options)) (optionsInputCyclicShifts options) (optionsSCQ11Input options)
-              let readerThread = readerWorkerThread (inputReader) (impulseReader) ((fromIntegral ((optionsInputSize options) * (optionsDopplerSize options))) * inputByteSize) ((optionsImpulseSize options) * 8)
+              let readerThread = readerWorkerThread inputReader impulseReader (fromIntegral (optionsInputSize options * optionsDopplerSize options) * inputByteSize) (optionsImpulseSize options * 8)
               let writerThread = writerWorkerThread (optionsOutputWriter options)
               
               --Begin thread execution
@@ -104,32 +104,43 @@ main = do
               
               --Close output function to force a flush of all buffered output data to the OS.
               optionsCloseOutputWriter options
-              exitWith ExitSuccess
+              exitSuccess
           (_, _, errors) -> do
-              (hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors)
+              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
               exitFailure
               
-              
+
+processComplexRadarReturn :: [Double] -> V.Vector (Complex Double) ->
+                                V.Vector (V.Vector (Complex Double)) ->
+                                V.Vector (V.Vector (V.Vector (Complex Double)))
 processComplexRadarReturn shifts impulse pulses = V.map (\shift -> processOfdmRadarReturnV impulse shift pulses) (V.fromList shifts)
 
  
 --Parse the cyclic shift input string
+processCyclicShifts :: String -> [Double]
 processCyclicShifts string = sort $ singleOptions ++ expansionOptions -- return opt { optionsInputCyclicShifts = sort $ singleOptions ++ expansionOptions}
     where stringSettingList = map (splitOn ":") $ splitOn "," string
           singleOptions = map (\[input] -> read input::Double) $ filter (\l -> length l == 1) stringSettingList
-          expansionOptions = concat $ map listComprehender $ filter (\l -> length l == 3) stringSettingList
+          expansionOptions = concatMap listComprehender $ filter (\l -> length l == 3) stringSettingList
           listComprehender :: [String] -> [Double]
-          listComprehender (x:y:z:xs) = [(i * step) + start | i <- [0..((end-start) / step)]]
+          listComprehender (x:y:z:_) = [(i * step) + start | i <- [0..((end-start) / step)]]
             where start = read x::Double
                   end = read y::Double
                   step = read z::Double
+          listComprehender _ = error "Invalid cyclic shift option format"
+         
                   
 
-encodeSignalBlock signalBlock = serializeBlock complexFloatSerializer $ (V.toList $ V.concatMap (id) $ V.concatMap (id) signalBlock)
+encodeSignalBlock :: V.Vector (V.Vector (V.Vector (Complex Double))) ->
+                            B.ByteString 
+encodeSignalBlock signalBlock = serializeBlock complexFloatSerializer $ V.toList (V.concatMap id $ V.concatMap id signalBlock)
                
                
---Each worker thread will encode and decode signal blocks in addition to performing radar processing on them.
-radarWorkerThread signalSize shifts sc11Input state (impulseBlock, inSignalBlock) = do
+--Each worker thread will encode and decode signal blocks in addition to 
+--performing radar processing on them.
+radarWorkerThread :: Int -> [Double] -> Bool -> [Int] -> (B.ByteString, B.ByteString)
+                                -> IO (Maybe (B.ByteString, [Int]))
+radarWorkerThread signalSize shifts sc11Input _ (impulseBlock, inSignalBlock) = do
     
     --
     let decoder = if sc11Input then complexSC11Deserializer else complexFloatDeserializer
@@ -138,7 +149,7 @@ radarWorkerThread signalSize shifts sc11Input state (impulseBlock, inSignalBlock
     let impulse = V.fromList $ fst $ deserializeBlock complexFloatDeserializer impulseBlock
     
     --Decode the recieved signal
-    let signal = V.fromList $ map (V.fromList) $ fst $ deserializeBlock (blockListDeserializer decoder signalSize) inSignalBlock
+    let signal = V.fromList $ map V.fromList $ fst $ deserializeBlock (blockListDeserializer decoder signalSize) inSignalBlock
     
     --Process the signal and the impulse
     let results = processComplexRadarReturn shifts impulse signal
@@ -146,30 +157,31 @@ radarWorkerThread signalSize shifts sc11Input state (impulseBlock, inSignalBlock
     --Encode the results of the processing
     let outSignalBlock = encodeSignalBlock results
     
-    return (Just $ (outSignalBlock, []))
+    return (Just (outSignalBlock, []))
     
     
-readerWorkerThread :: IO B.ByteString -> IO B.ByteString -> Int -> Int -> [Char] -> IO (Maybe ((B.ByteString, B.ByteString), [Char]))
-readerWorkerThread inputReader impulseReader inputSize impulseSize state = do
+readerWorkerThread :: IO B.ByteString -> IO B.ByteString -> Int -> Int -> String -> IO (Maybe ((B.ByteString, B.ByteString), String))
+readerWorkerThread inputReader impulseReader inputSize impulseSize _ = do
     
         impulseBlock <- impulseReader
         inputBlock <- inputReader
         
-        let check = ((B.length impulseBlock) /= impulseSize) || ((B.length inputBlock) /= inputSize)
+        let check = (B.length impulseBlock /= impulseSize) || (B.length inputBlock /= inputSize)
         
         return $ if check then
         
             Nothing 
             
-                 else Just $ ((impulseBlock, inputBlock), [])
+                 else Just ((impulseBlock, inputBlock), [])
 
                  
-writerWorkerThread :: (B.ByteString -> IO ()) -> [Char] -> B.ByteString -> IO (Maybe [Char])
-writerWorkerThread outputWriter state outSignalBlock = do
+writerWorkerThread :: (B.ByteString -> IO ()) -> String -> B.ByteString -> 
+                        IO (Maybe String)
+writerWorkerThread outputWriter _ outSignalBlock = do
     
     outputWriter outSignalBlock
     
-    return (Just $ [])
+    return (Just [])
      
 
 

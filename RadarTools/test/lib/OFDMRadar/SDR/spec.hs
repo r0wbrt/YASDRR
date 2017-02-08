@@ -15,6 +15,7 @@ import OFDMRadar.SDR.OFDMModulation
 import OFDMRadar.SDR.DopplerRadar
 import Data.Complex
 import qualified Data.ByteString as B
+import qualified OFDMRadar.SDR.MorseCode as Morse
 
 main :: IO ()
 main = defaultMain tests
@@ -37,14 +38,28 @@ tests = [
          ],
          testGroup "OFDM Radar Return Test" ofdmDecodeTestCases,
          testGroup "Doppler List Radar Return Test" listDopplerTestCases,
-         testGroup "Doppler Vector Radar Return Test" vectorDopplerTestCases
-         -- testCase "Ofdm Radar retun test size 1" ofdmRadarReturnTest1,
-         -- testCase "Ofdm Radar retun test size 2" ofdmRadarReturnTest2,
-         -- testCase "Ofdm Radar retun test size 4" ofdmRadarReturnTest4,
-         -- testCase "Ofdm Radar retun test size 8" ofdmRadarReturnTest8,
-         -- testCase "Ofdm Radar retun test size 16" ofdmRadarReturnTest16
+         testGroup "Doppler Vector Radar Return Test" vectorDopplerTestCases,
+         testGroup "Morse Code" [
+            testCase "Convert SOS" morseCodeConvertSOSTest,
+            testCase "Convert Quick Brown Fox" morseCodeConvertQuickBrownFoxTest
+           -- testCase "Encode SOS" morseCodeEncodeSOSTest,
+            --testCase "Encode Quick Brown Fox" morseCodeEncodeQuickBrownFoxTest
+         ]
         ]
-       
+
+morseCodeConvertSOSTest = assertEqual "SOS was not encoded properly by the morse encoder." expectedOutput givenOutput
+    where expectedOutput = [Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace,
+                                Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace,
+                                    Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot]
+          testString ="sOS" -- Morse Sequence: ... --- ...
+          givenOutput = Morse.convertStringToMorseCode testString
+    
+
+morseCodeConvertQuickBrownFoxTest = assertEqual "The Quick Brown Fox Jumps Over The laZy dOg was not encoded properly by the morse encoder" expectedOutput givenOutput
+    where testString = "The Quick  Brown Fox Jumps Over The laZy dOg  " -- Morse Sequence: - .... . / --.- ..- .. -.-. -.- / -... .-. --- .-- -. / ..-. --- -..- / .--- ..- -- .--. ... / --- ...- . .-. / - .... . / .-.. .- --.. -.-- / -.. --- --.
+          expectedOutput = [Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace,Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace,Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace,Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace,Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace,Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace,Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace,Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace,Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseDot, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDash, Morse.MorseSpace, Morse.MorseDot] 
+          givenOutput = Morse.convertStringToMorseCode testString
+        
 symbolExtensionEmpty :: Int -> Int -> Bool
 symbolExtensionEmpty lengthOfSilence cyclicLength = (extendOFDMSymbol (abs cyclicLength) (abs lengthOfSilence) []) == []
 

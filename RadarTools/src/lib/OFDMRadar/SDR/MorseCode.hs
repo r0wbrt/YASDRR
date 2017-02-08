@@ -18,16 +18,18 @@ Functionality used to generate morse code signals for identification purposes.
 module OFDMRadar.SDR.MorseCode
         ( convertStringToMorseCode, 
           wpmToDotLength,
-          generateMorseCodeFromSequence
+          generateMorseCodeFromSequence,
+          MorseSymbol (MorseDot, MorseDash, MorseSpace)
          ) where 
 
 
 import qualified Data.HashMap as Map
 import Data.Complex
 import Data.Maybe
+import qualified Data.Char as DChar
 
 
-data MorseSymbol = MorseDot | MorseDash | MorseSpace 
+data MorseSymbol = MorseDot | MorseDash | MorseSpace deriving (Show,Eq)
           
           
 -- | table of morse characters.
@@ -47,7 +49,7 @@ letterTable =
     , ('L',[MorseDot, MorseDash, MorseDot, MorseDot])
     , ('M',[MorseDash, MorseDash])
     , ('N',[MorseDash, MorseDot])
-    , ('O',[MorseDash, MorseDash])
+    , ('O',[MorseDash, MorseDash, MorseDash])
     , ('P',[MorseDot, MorseDash, MorseDash, MorseDot])
     , ('Q',[MorseDash, MorseDash, MorseDot, MorseDash])
     , ('R',[MorseDot, MorseDash, MorseDot])
@@ -79,7 +81,7 @@ letterTable =
 -- | Table of special morse symbols, like the space between words.
 symbolTable :: [(Char, [MorseSymbol])]
 symbolTable = 
-    [ (' ', [MorseSpace, MorseSpace, MorseSpace, MorseSpace, MorseSpace, MorseSpace, MorseSpace]) ]
+    [ (' ', [MorseSpace, MorseSpace, MorseSpace, MorseSpace]) ]
     
     
 -- | The actual hash map that maps chars to morse characters.
@@ -90,7 +92,7 @@ morseMap = Map.union letterMap symbolMap
           
           symbolMap = foldl insertIntoMap Map.empty symbolTable
         
-          insertIntoMap hMap (k, value) = Map.insert k value hMap
+          insertIntoMap hMap (k, value) = Map.insert (DChar.toUpper k) value hMap
           
           adjustLetterTable = map (\(k, value) -> (k, init $ insertLetterSpaces value))
           
@@ -101,14 +103,16 @@ morseMap = Map.union letterMap symbolMap
 -- representation.
 convertStringToMorseCode :: String -> [MorseSymbol]
 convertStringToMorseCode input = 
-    take (length (morseString input) - 3) $ morseString input
+    take (length (morseString sanitizedString) - 3) $ morseString sanitizedString
 
     where morseString = concatMap letterToMorse
+          
+          sanitizedString = unwords $ words input
         
           letterToMorse ' ' = fromJust (Map.lookup ' ' morseMap)
           
           letterToMorse c = 
-              (fromJust (Map.lookup c morseMap))
+              (fromJust (Map.lookup (DChar.toUpper c) morseMap))
                 ++ [MorseSpace, MorseSpace, MorseSpace]
     
     

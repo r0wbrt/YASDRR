@@ -129,13 +129,13 @@ generateMorseCodeFromSequence sampleRate frequency amplitude dotLength =
           generateMorseSound MorseSpace = morseWave 1 0.0
           
           
-          morseWave count waveAmplitude = [(waveAmplitude :+ 0 ) * cis(2.0 * pi * frequency * (fromIntegral i) / sampleRate) | i <- [0::Int, floor (dotLengthInSymbols * count)]]
+          morseWave count waveAmplitude = [(waveAmplitude :+ 0 ) * cis(2.0 * pi * frequency * (fromIntegral i) / sampleRate) | i <- [0::Int .. floor (dotLengthInSymbols * count)]]
           
           dotLengthInSymbols = dotLength * sampleRate
           
           
 -- | Converts wpm to dot length as a fraction of a second.
 wpmToDotLength :: Int -> Double
-wpmToDotLength wpm = fromIntegral wpm / 2.4 
+wpmToDotLength wpm = 1.2 / fromIntegral wpm
     
                     

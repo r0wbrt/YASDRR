@@ -20,7 +20,7 @@ signals." PhD diss., TU Delft, Delft University of Technology, 2010.
 
 # Patents
 This software may be covered by US patent US8081105B2. I am not a lawyer though
-so I can not render a legal statment on this subject.
+so I can not render a legal statement on this subject.
 
 
 

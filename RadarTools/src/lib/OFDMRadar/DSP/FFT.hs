@@ -15,6 +15,8 @@ numbers. Additionally includes several functions to manipulate the data pre and
 post FFT processing.
 -}
 
+{-# LANGUAGE ForeignFunctionInterface #-}
+
 module OFDMRadar.DSP.FFT (
                               createFft
                             , createFftV
@@ -24,7 +26,7 @@ module OFDMRadar.DSP.FFT (
                             , cyclicMutateMatrixV
                             ) where
 
-{-# LANGUAGE ForeignFunctionInterface #-}
+
                             
 import qualified Data.Vector as V
 import Data.Complex

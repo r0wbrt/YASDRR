@@ -106,7 +106,7 @@ main = do
               optionsCloseOutputWriter options
               exitSuccess
           (_, _, errors) -> do
-              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
+              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] : errors
               exitFailure
               
 

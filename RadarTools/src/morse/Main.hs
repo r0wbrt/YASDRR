@@ -48,7 +48,7 @@ defaulProgramOptions =  ProgramOptions { optionsInput = getContents
 --   how to decode said input.
 commandLineOptions :: [OptDescr (ProgramOptions -> IO ProgramOptions)]
 commandLineOptions = 
-    [ GetOpt.Option [] ["InputFile"] (GetOpt.ReqArg (\input options -> return options { optionsInput = (openFile input ReadMode) >>= hGetContents  }) "[Path to Text File]")
+    [ GetOpt.Option [] ["InputFile"] (GetOpt.ReqArg (\input options -> return options { optionsInput = openFile input ReadMode >>= hGetContents  }) "[Path to Text File]")
         "A path to the text file that will be encoded into morse code."
         
     , GetOpt.Option [] ["InputMessage"] (GetOpt.ReqArg (\input options -> return options { optionsInput = return input }) "[Input Message to convert]")  
@@ -65,7 +65,7 @@ commandLineOptions =
     
     , GetOpt.Option [] ["OutputPath"] (GetOpt.ReqArg (\input options -> do
                                          h <- openBinaryFile input WriteMode 
-                                         return options { optionsOutputWriter = (\b -> do B.hPut h b), optionsOutputCloser = hClose h}) "[Center frequency of the morse signal]")
+                                         return options { optionsOutputWriter = B.hPut h b, optionsOutputCloser = hClose h}) "[Center frequency of the morse signal]")
         "The file path to store the generated output. Note, the output is stored as a complex floating point."
 
     , GetOpt.Option [] ["SC11"] (GetOpt.NoArg (\options -> return options { optionsEncodeAsSC11 = True }) )
@@ -128,7 +128,7 @@ showHelpMessage :: Bool -> ProgramOptions -> IO ProgramOptions
 showHelpMessage showAll _ = do
     programName <- Environment.getProgName
     let extendedDescription = if showAll then descriptionMessage else ""
-    hPutStrLn stderr (GetOpt.usageInfo (extendedDescription ++ (unlines ["", "Usage: "++programName++" [OPTIONS...]"]) ) commandLineOptions) 
+    hPutStrLn stderr (GetOpt.usageInfo (extendedDescription ++ unlines ["", "Usage: "++programName++" [OPTIONS...]"])  commandLineOptions) 
     exitSuccess
     
     
@@ -161,7 +161,7 @@ main = do
                                             ComplexSerialization.serializeBlock ComplexSerialization.complexSC11Serializer morseSignal
                                                 else ComplexSerialization.serializeBlock ComplexSerialization.complexFloatSerializer morseSignal
                                                 
-             (optionsOutputWriter executionSettings) binaryEncodedSignal
+             optionsOutputWriter executionSettings binaryEncodedSignal
                 
              hSetBinaryMode stdout False
              
@@ -170,7 +170,7 @@ main = do
              
           -- Case triggered when the user supplies invalid input
          (_, _, errors) -> do
-              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
+              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] : errors
               exitFailure
 
         

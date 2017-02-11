@@ -147,7 +147,7 @@ main = do
          (_, _, errors) -> do
              
               --Write Error
-              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
+              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] : errors
               
               --Quit
               exitFailure

@@ -112,7 +112,7 @@ convertStringToMorseCode input =
           letterToMorse ' ' = fromJust (Map.lookup ' ' morseMap)
           
           letterToMorse c = 
-              (fromJust (Map.lookup (DChar.toUpper c) morseMap))
+              fromJust (Map.lookup (DChar.toUpper c) morseMap)
                 ++ [MorseSpace, MorseSpace, MorseSpace]
     
     
@@ -129,7 +129,7 @@ generateMorseCodeFromSequence sampleRate frequency amplitude dotLength =
           generateMorseSound MorseSpace = morseWave 1 0.0
           
           
-          morseWave count waveAmplitude = [(waveAmplitude :+ 0 ) * cis(2.0 * pi * frequency * (fromIntegral i) / sampleRate) | i <- [0::Int .. floor (dotLengthInSymbols * count)]]
+          morseWave count waveAmplitude = [(waveAmplitude :+ 0 ) * cis(2.0 * pi * frequency * fromIntegral i / sampleRate) | i <- [0::Int .. floor (dotLengthInSymbols * count)]]
           
           dotLengthInSymbols = dotLength * sampleRate
           

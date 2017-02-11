@@ -65,7 +65,7 @@ commandLineOptions =
     
     , GetOpt.Option [] ["OutputPath"] (GetOpt.ReqArg (\input options -> do
                                          h <- openBinaryFile input WriteMode 
-                                         return options { optionsOutputWriter = B.hPut h b, optionsOutputCloser = hClose h}) "[Center frequency of the morse signal]")
+                                         return options { optionsOutputWriter = B.hPut h, optionsOutputCloser = hClose h}) "[Center frequency of the morse signal]")
         "The file path to store the generated output. Note, the output is stored as a complex floating point."
 
     , GetOpt.Option [] ["SC11"] (GetOpt.NoArg (\options -> return options { optionsEncodeAsSC11 = True }) )
@@ -133,6 +133,7 @@ showHelpMessage showAll _ = do
     
     
 -- | The programs main execution function.
+{-# ANN module "HLint: ignore Use :" #-}
 main :: IO ()
 main = do
     commandLineArguments <- Environment.getArgs 
@@ -170,7 +171,7 @@ main = do
              
           -- Case triggered when the user supplies invalid input
          (_, _, errors) -> do
-              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] : errors
+              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
               exitFailure
 
         

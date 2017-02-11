@@ -75,7 +75,8 @@ safeReader h size = do
         return B.empty
     else
         B.hGet h size
-        
+
+{-# ANN module "HLint: ignore Use :" #-}
 main :: IO ()
 main = do
     arguments <- getArgs
@@ -106,7 +107,7 @@ main = do
               optionsCloseOutputWriter options
               exitSuccess
           (_, _, errors) -> do
-              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] : errors
+              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
               exitFailure
               
 

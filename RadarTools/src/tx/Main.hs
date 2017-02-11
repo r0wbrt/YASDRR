@@ -105,6 +105,7 @@ safeReader handle size = do
         B.hGet handle size
         
 --Entry Function to the program
+{-# ANN module "HLint: ignore Use :" #-}
 main :: IO ()
 main = do
     arguments <- getArgs
@@ -147,7 +148,7 @@ main = do
          (_, _, errors) -> do
              
               --Write Error
-              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] : errors
+              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
               
               --Quit
               exitFailure

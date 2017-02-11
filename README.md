@@ -1,5 +1,7 @@
 # OFDMRadar
 
+[![Build Status](https://travis-ci.org/r0wbrt/OFDMRadar.svg?branch=master)](https://travis-ci.org/r0wbrt/OFDMRadar)
+
 Functionality to transmit and receive OFDM radar signals ans process them. This 
 project is primaraly written in Haskell with the FFT used by the project
 written in C. Python and R used to automate some of the development tasks.

@@ -129,7 +129,9 @@ generateMorseCodeFromSequence sampleRate frequency amplitude dotLength =
           generateMorseSound MorseSpace = morseWave 1 0.0
           
           
+          morseWave count 0.0 = replicate (floor (dotLengthInSymbols * count)) (0.0 :+ 0.0)
           morseWave count waveAmplitude = [(waveAmplitude :+ 0 ) * cis(2.0 * pi * frequency * fromIntegral i / sampleRate) | i <- [0::Int .. floor (dotLengthInSymbols * count)]]
+          
           
           dotLengthInSymbols = dotLength * sampleRate
           

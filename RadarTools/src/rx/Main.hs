@@ -62,7 +62,7 @@ programOptions =
                                                                 exitSuccess)) "Show this help message"
     , GetOpt.Option ['p'] ["dopplerInterval"] (GetOpt.ReqArg (\interval opt -> return opt { optionsDopplerSize = read interval::Int } ) "[Number of Pulses]")  "The number of pulses to perform doppler processing over"
     , GetOpt.Option [] ["cyclicShifts"] (GetOpt.ReqArg (\string opt -> return opt { optionsInputCyclicShifts = processCyclicShifts string } ) "[List of cyclic Shifts]") "Cyclic shifts to perform upon the input signal. \r\nComma delimited list of numbers or number expansion. Ex 1,2,3, which is equivalent to 1:3:1.\r\nCan combine numbers with expansion operations, eg \"-2:2:.25,-5,5,-10,10\""
-    , GetOpt.Option [] ["scQ11Input"]
+    , GetOpt.Option [] ["sc11"]
         (GetOpt.NoArg (\opt -> return $ opt { optionsSCQ11Input = True })) "Optionally makes signalInput SCQ11 encoded for 12 bit ADC"
     ]
     

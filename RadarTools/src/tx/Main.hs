@@ -86,7 +86,7 @@ options =
                                                                 prg <- getProgName
                                                                 hPutStrLn stderr (GetOpt.usageInfo ("Usage: "++prg++" [OPTIONS...]") options) 
                                                                 exitSuccess)) "Show this help message"
-     , GetOpt.Option [] ["scQ11Output"]
+     , GetOpt.Option [] ["sc11"]
         (GetOpt.NoArg (\opt -> return $ opt { optionsSCQ11Output = True })) "Optionally makes signalOutput SC Q11 encoded for 12 bit DACs"
      , GetOpt.Option [] ["randomData"]
         (GetOpt.NoArg (\opt -> return $ opt {optionsRandomData = True})) "Use a random number generator to create source data"

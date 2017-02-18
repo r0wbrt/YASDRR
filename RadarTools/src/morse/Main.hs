@@ -48,27 +48,27 @@ defaulProgramOptions =  ProgramOptions { optionsInput = getContents
 --   how to decode said input.
 commandLineOptions :: [OptDescr (ProgramOptions -> IO ProgramOptions)]
 commandLineOptions = 
-    [ GetOpt.Option [] ["InputFile"] (GetOpt.ReqArg (\input options -> return options { optionsInput = openFile input ReadMode >>= hGetContents  }) "[Path to Text File]")
+    [ GetOpt.Option [] ["inputFile"] (GetOpt.ReqArg (\input options -> return options { optionsInput = openFile input ReadMode >>= hGetContents  }) "[Path to Text File]")
         "A path to the text file that will be encoded into morse code."
         
-    , GetOpt.Option [] ["InputMessage"] (GetOpt.ReqArg (\input options -> return options { optionsInput = return input }) "[Input Message to convert]")  
+    , GetOpt.Option [] ["inputMessage"] (GetOpt.ReqArg (\input options -> return options { optionsInput = return input }) "[Input Message to convert]")  
         "A text message to encode into morse code."
         
-    , GetOpt.Option [] ["SampleRate"] (GetOpt.ReqArg (\input options -> return options { optionsSampleRate = read input::Double }) "[Sample Rate of the morse signal]")
+    , GetOpt.Option [] ["sampleRate"] (GetOpt.ReqArg (\input options -> return options { optionsSampleRate = read input::Double }) "[Sample Rate of the morse signal]")
         "The sample rate of the generated morse code output."
         
-    , GetOpt.Option [] ["Wpm"] (GetOpt.ReqArg (\input options -> return options { optionsWordsPerMinute = read input::Int }) "[The number of words to transmit per minute]")
+    , GetOpt.Option [] ["wpm"] (GetOpt.ReqArg (\input options -> return options { optionsWordsPerMinute = read input::Int }) "[The number of words to transmit per minute]")
         "The number of words to transmit per minute."
         
-    , GetOpt.Option [] ["Frequency"] (GetOpt.ReqArg (\input options -> return options { optionsDotFrequency = read input::Double }) "[Center frequency of the morse signal]")
+    , GetOpt.Option [] ["frequency"] (GetOpt.ReqArg (\input options -> return options { optionsDotFrequency = read input::Double }) "[Center frequency of the morse signal]")
         "The center frequency of the generated morse signal."
     
-    , GetOpt.Option [] ["OutputPath"] (GetOpt.ReqArg (\input options -> do
+    , GetOpt.Option [] ["outputPath"] (GetOpt.ReqArg (\input options -> do
                                          h <- openBinaryFile input WriteMode 
                                          return options { optionsOutputWriter = B.hPut h, optionsOutputCloser = hClose h}) "[Center frequency of the morse signal]")
         "The file path to store the generated output. Note, the output is stored as a complex floating point."
 
-    , GetOpt.Option [] ["SC11"] (GetOpt.NoArg (\options -> return options { optionsEncodeAsSC11 = True }) )
+    , GetOpt.Option [] ["sc11"] (GetOpt.NoArg (\options -> return options { optionsEncodeAsSC11 = True }) )
         "When this flag is set, the output is instead a complex 16 bit sample with 11 bit precision."
         
      , GetOpt.Option ['h', '?'] ["help"] (GetOpt.NoArg (showHelpMessage False)) "Show simple help message"
@@ -131,6 +131,9 @@ showHelpMessage showAll _ = do
     hPutStrLn stderr (GetOpt.usageInfo (extendedDescription ++ unlines ["", "Usage: "++programName++" [OPTIONS...]"])  commandLineOptions) 
     exitSuccess
     
+-- | Writes a single morse symbol to the output file
+writeMorseSymbol:: ([a] -> B.ByteString) -> ([Morse.MorseSymbol] -> [a]) -> (B.ByteString -> IO ()) -> Morse.MorseSymbol -> IO ()
+writeMorseSymbol serializer morseGenerator writer symbol = writer $ serializer $ morseGenerator [symbol]
     
 -- | The programs main execution function.
 {-# ANN module "HLint: ignore Use :" #-}
@@ -156,13 +159,15 @@ main = do
              
              let frequency = optionsDotFrequency executionSettings
              
-             let morseSignal = Morse.generateMorseCodeFromSequence sampleRate frequency (1.0::Double) dotLength morseSymbols
+             let morseSignalGenerator = Morse.generateMorseCodeFromSequence sampleRate frequency (1.0::Double) dotLength
              
-             let binaryEncodedSignal = if optionsEncodeAsSC11 executionSettings then
-                                            ComplexSerialization.serializeBlock ComplexSerialization.complexSC11Serializer morseSignal
-                                                else ComplexSerialization.serializeBlock ComplexSerialization.complexFloatSerializer morseSignal
+             let binarySignalEncodeder = if optionsEncodeAsSC11 executionSettings then
+                                            ComplexSerialization.serializeBlock ComplexSerialization.complexSC11Serializer
+                                                else ComplexSerialization.serializeBlock ComplexSerialization.complexFloatSerializer
                                                 
-             optionsOutputWriter executionSettings binaryEncodedSignal
+             let writer = optionsOutputWriter executionSettings
+                 
+             _ <- mapM (writeMorseSymbol binarySignalEncodeder morseSignalGenerator writer) morseSymbols
                 
              hSetBinaryMode stdout False
              
@@ -173,5 +178,6 @@ main = do
          (_, _, errors) -> do
               hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
               exitFailure
+
 
         

@@ -1,7 +1,7 @@
 --Copyright Robert C. Taylor
 
 {- |
-Module      :  OFDMRadar.SDR.Converter
+Module      :  YASDRR.SDR.Converter
 Description :  Functions used to convert bytes to symbol stream.
 Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
@@ -14,13 +14,13 @@ Primitive functions that are used to write functions and programs that take a
 byte stream as input and produce a symbol stream as output.
 -}
 
-module OFDMRadar.SDR.Converters (bytesToSymbols) where
+module YASDRR.SDR.Converters (bytesToSymbols) where
 
 import qualified Data.ByteString as B
 import qualified Data.Array as Array
 import Data.Word
 import Data.Bits
-import qualified OFDMRadar.Math.Misc as MathMisc
+import qualified YASDRR.Math.Misc as MathMisc
 import Data.Complex
 
 -- | Converts a data block into a list of symbols. Symbols are in LIFO order 
@@ -36,7 +36,7 @@ bytesToSymbols wordSize constellationArray dataBlock =
             ++ reverse 
                 (byteToSymbol constellationArray wordSize 0 (B.head dataBlock))
         
-    where isWordSizePowerOf2AndSizeMost8 = ((2 ^ MathMisc.discretePowerOf2 wordSize) == wordSize && wordSize <= 8) || error "bytesToSymbols was supplied with invalid word size"
+    where isWordSizePowerOf2AndSizeMost8 = ((2 ^ MathMisc.discretePowerOf2 wordSize) == wordSize && wordSize <= 8) || error "bytesToSymbols was supplied with invalid word size."
     
           
 byteToSymbol :: Array.Array Word8 (Complex Double) -> Int -> 

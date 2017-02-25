@@ -6,16 +6,16 @@ import qualified Data.ByteString as B
 import Data.Complex
 import System.Environment
 import System.Exit
-import qualified OFDMRadar.Threading.Sharding as RMS
+import qualified YASDRR.Threading.Sharding as RMS
 import System.Console.GetOpt as GetOpt
 import System.IO
 import qualified Data.Array as Array
 import Data.Word
-import OFDMRadar.Math.Misc
+import YASDRR.Math.Misc
 import Data.List.Split
 import System.Random
-import OFDMRadar.IO.ComplexSerialization
-import qualified OFDMRadar.SDR.OFDMModulation as SdrOFDMMod
+import YASDRR.IO.ComplexSerialization
+import qualified YASDRR.SDR.OFDMModulation as SdrOFDMMod
 
 --Default number of carriers to generate. 
 defaultNumberOfCarriers :: Int
@@ -124,9 +124,9 @@ main = do
              
              --Init the Thread Functions
              let dataReaderWorker = if optionsRandomData opt then
-                                        readerThread (optionsDataInputReader opt) readLength
-                                    else
                                         randomReaderThread readLength
+                                    else
+                                        readerThread (optionsDataInputReader opt) readLength
                     
              let dataWriterWorker = writerThread (optionsSymbolOutputWriter opt) (optionsTransmitOutputWriter opt) 
              let dataWorker = workerThread (optionsNumberOfCarriers opt) (optionsCyclicPrefixLength opt) (optionsLengthOfSilence opt) (fromIntegral . toInteger $ constellationPower) constellationArray (optionsSCQ11Output opt)

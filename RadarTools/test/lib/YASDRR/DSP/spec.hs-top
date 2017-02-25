@@ -9,9 +9,9 @@ import Data.Array
 import Data.Complex
 import Data.Word
 import System.IO.Unsafe
-import OFDMRadar.DSP.FFT
-import OFDMRadar.DSP.Correlation
-import OFDMRadar.Math.Misc
+import YASDRR.DSP.FFT
+import YASDRR.DSP.Correlation
+import YASDRR.Math.Misc
 import qualified Data.Vector as V
 import Data.List
 

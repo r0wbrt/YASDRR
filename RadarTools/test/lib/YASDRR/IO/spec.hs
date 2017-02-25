@@ -9,7 +9,7 @@ import Data.Word
 import qualified Data.Binary.Get as BG
 import qualified Data.Binary.Put as BP
 import qualified Data.ByteString as B
-import OFDMRadar.IO.ComplexSerialization
+import YASDRR.IO.ComplexSerialization
 
 main :: IO ()
 main = defaultMain tests

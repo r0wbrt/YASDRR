@@ -10,7 +10,7 @@ import System.Console.GetOpt as GetOpt
 import System.IO
 
 --Functions to encode text and generate the resulting morse code.
-import qualified OFDMRadar.SDR.MorseCode as Morse
+import qualified YASDRR.SDR.MorseCode as Morse
 
 --Needed to import environment variables like the command line and program name.
 import qualified System.Environment as Environment
@@ -19,7 +19,7 @@ import qualified System.Environment as Environment
 import System.Exit 
 
 --Functions to convert complex signals into their binary form.
-import qualified OFDMRadar.IO.ComplexSerialization as ComplexSerialization
+import qualified YASDRR.IO.ComplexSerialization as ComplexSerialization
 
 
 data ProgramOptions = ProgramOptions { optionsInput :: IO String

@@ -1,7 +1,7 @@
 --Copyright Robert C. Taylor - All Rights Reserved
 
 {- |
-Module      :  OFDMRadar.IO.ComplexSerialization
+Module      :  YASDRR.IO.ComplexSerialization
 Description :  Functionality to serialize and deserialize streams of complex numbers.
 Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
@@ -14,7 +14,7 @@ Functionality to serialize and deserialize streams of complex numbers. Supports
 serializing and deserializing both complex float and complex SC11. 
 -}
 
-module OFDMRadar.IO.ComplexSerialization (
+module YASDRR.IO.ComplexSerialization (
                                             BinaryParserExceptions 
                                                 ( DidNotExpectIncompleteData,
                                                     FailedWhileParsing,
@@ -22,7 +22,8 @@ module OFDMRadar.IO.ComplexSerialization (
             deserializeBlock, serializeBlock, blockListDeserializer,
             blockListSerializer, complexFloatSerializer,
             complexFloatDeserializer, complexSC11Deserializer,
-            complexSC11Serializer) where
+            complexSC11Serializer, complexSigned16Serializer,
+            complexDoubleSerializer, serializeBlockV) where
 
 import qualified Data.Binary.Get as BG
 import qualified Data.Binary.Put as BP
@@ -32,6 +33,7 @@ import Data.Complex
 import GHC.Float
 import Control.Exception
 import Data.Typeable
+import qualified Data.Vector as V
 
 
 data BinaryParserExceptions = DidNotExpectIncompleteData String 
@@ -83,7 +85,20 @@ serializeBlock :: (a -> BP.Put) -> [a] -> B.ByteString
 serializeBlock encoder block = BL.toStrict $ BP.runPut puter
                                               
     where puter = serializationStreamProcessor encoder block
-
+          
+          
+serializeBlockV :: (a -> BP.Put) -> V.Vector a -> B.ByteString
+serializeBlockV encoder block = BL.toStrict $ BP.runPut puter
+                                              
+    where puter = serializationStreamProcessorV encoder block
+    
+    
+serializationStreamProcessorV :: (a -> BP.Put) -> V.Vector (a) -> BP.Put
+serializationStreamProcessorV parser vector = do
+    parser $ V.unsafeHead vector 
+    if V.length vector > 1 then serializationStreamProcessorV parser (V.tail vector) 
+                  else return ()
+    
     
 blockListDeserializer :: BG.Get a -> Int -> BG.Get [a]
 blockListDeserializer _ 0 = return []
@@ -100,8 +115,22 @@ blockListSerializer encoder input = do
     encoder (head input)
     
     blockListSerializer encoder (tail input)
-
-
+    
+    
+complexDoubleSerializer :: Complex Double -> BP.Put
+complexDoubleSerializer (real :+ imaginary) = do
+    BP.putDoublele real
+    BP.putDoublele imaginary
+    
+    
+complexSigned16Serializer :: Double -> Complex Double -> BP.Put
+complexSigned16Serializer base (real :+ imaginary) = do
+    BP.putInt16le $ convertNumber real
+    BP.putInt16le $ convertNumber imaginary
+    
+    where convertNumber number = floor $ signum number * abs (minimum [ 32767.0 * number / base, 32767.0])
+    
+    
 complexFloatSerializer :: Complex Double -> BP.Put
 complexFloatSerializer (real :+ imaginary) = do
     

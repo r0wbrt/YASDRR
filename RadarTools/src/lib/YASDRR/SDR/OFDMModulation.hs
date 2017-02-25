@@ -2,7 +2,7 @@
 
 
 {- |
-Module      :  OFDMRadar.SDR.OFDMModulation
+Module      :  YASDRR.SDR.OFDMModulation
 Description :  Functions used to create OFDM signals
 Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
@@ -15,13 +15,13 @@ Functionality to encode bytestreams into symbols as well as generate OFDM
 signals.
 -}
 
-module OFDMRadar.SDR.OFDMModulation where
+module YASDRR.SDR.OFDMModulation where
 
-import qualified OFDMRadar.SDR.Converters as SDRConverters
-import qualified OFDMRadar.DSP.FFT as DSPFft
-import qualified OFDMRadar.SDR.DopplerRadar as DopplerRadar
-import qualified OFDMRadar.DSP.Correlation as Correlation
-import qualified OFDMRadar.Math.Misc as MathMisc
+import qualified YASDRR.SDR.Converters as SDRConverters
+import qualified YASDRR.DSP.FFT as DSPFft
+import qualified YASDRR.SDR.DopplerRadar as DopplerRadar
+import qualified YASDRR.DSP.Correlation as Correlation
+import qualified YASDRR.Math.Misc as MathMisc
 import qualified Data.ByteString as B
 import Data.Word
 import qualified Data.Array as Array

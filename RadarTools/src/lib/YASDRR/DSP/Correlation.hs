@@ -1,7 +1,7 @@
 --Copyright Robert C. Taylor - All Rights Reserved
 
 {- |
-Module      :  OFDMRadar.DSP.Correlation
+Module      :  YASDRR.DSP.Correlation
 Description :  Functions used to calculate the correlation between two 
                sequences of complex numbers.
 Copyright   :  (c) Robert C. Taylor
@@ -15,11 +15,10 @@ Contains several useful functions to calculate the correlation of two complex
 number sequences.
 -}
 
-module OFDMRadar.DSP.Correlation (correlate, correlateV) where
+module YASDRR.DSP.Correlation (correlate, correlateV) where
 
 import qualified Data.Vector as V
 import Data.Complex
-import Data.Array
 
 -- | Vector based correlation using complex numbers.
 correlateV :: V.Vector (Complex Double) -> V.Vector (Complex Double) 
@@ -38,14 +37,14 @@ correlate impulse signal = map loopFunction [0..(length signal - 1)]
                                     
     where conjImpulse = map conjugate impulse
           loopFunction = correlateLoop conjImpulse signalArray (length signal) 0
-          signalArray = array (0, length signal) $ zip [0,1..] signal
+          signalArray = V.fromList signal
 
 --Correlation accumulator loop, written based on profiling data
-correlateLoop :: [Complex Double] -> Array Int (Complex Double) -> Int 
+correlateLoop :: [Complex Double] -> V.Vector (Complex Double) -> Int 
                         -> Complex Double -> Int -> Complex Double
 correlateLoop [] _ _ acc _  = acc
 correlateLoop impulse signal signalSize acc offset 
     | offset == signalSize = acc
     | otherwise = acc `seq` correlateLoop (tail impulse) signal signalSize 
-                    ( ( (signal!offset) * head impulse ) + acc)
+                    ( ( (signal V.! offset) * head impulse ) + acc)
                     (offset + 1)

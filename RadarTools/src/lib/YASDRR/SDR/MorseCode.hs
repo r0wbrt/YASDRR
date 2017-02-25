@@ -2,7 +2,7 @@
 
 
 {- |
-Module      :  OFDMRadar.SDR.MorseCode
+Module      :  YASDRR.SDR.MorseCode
 Description :  Functions used to generate Morse Code Signals
 Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
@@ -15,7 +15,7 @@ Functionality used to generate morse code signals for identification purposes.
 -}
 
 
-module OFDMRadar.SDR.MorseCode
+module YASDRR.SDR.MorseCode
         ( convertStringToMorseCode, 
           wpmToDotLength,
           generateMorseCodeFromSequence,

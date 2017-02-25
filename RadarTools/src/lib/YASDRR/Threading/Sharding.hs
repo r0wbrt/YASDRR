@@ -1,7 +1,7 @@
 --Copyright Robert C. Taylor, All Rights Reserved
 
 {- |
-Module      :  OFDMRadar.Threading.Sharding
+Module      :  YASDRR.Threading.Sharding
 Description :  Library to create a single producer to many worker to single consumer.
 Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
@@ -15,7 +15,7 @@ processed by a group of worker threads. These worker threads then route their
 output to a single consumer thread.
 -}
 
-module OFDMRadar.Threading.Sharding (shardResource, 
+module YASDRR.Threading.Sharding (shardResource, 
                                       shardResourceComplicated,
                                           defaultNumberOfThreads,
                                               defaultQueueSize,
@@ -29,6 +29,8 @@ module OFDMRadar.Threading.Sharding (shardResource,
 import qualified Control.Concurrent.Chan.Unagi.Bounded as CCCUB
 import Control.Concurrent.MVar
 import Control.Concurrent
+-- import Data.Sequence as Seq
+
 
 -- | Format of message passed between sharding threads
 data MessageType a = MessageDie | MessageData Int a 
@@ -75,9 +77,9 @@ shardResourceComplicated shardProducer prodState shardConsumer consState shardWo
     (inFromWorkers, outFromWorkers) <- CCCUB.newChan queueSize
     
     --Create the consumer and producer thread
-    _ <- forkFinally (shardProducerThread shardProducer inToWorkers numberOfThreads 0 prodState) (\_ -> putMVar producerThreadMvar ())
+    _ <- forkFinally (shardProducerThread shardProducer inToWorkers numberOfThreads 0 prodState) (threadDeathHandler producerThreadMvar "producer")
     
-    _ <- forkFinally (shardConsumerThread shardConsumer outFromWorkers numberOfThreads [] 0 consState) (\_ -> putMVar consumerThreadMvar ())
+    _ <- forkFinally (shardConsumerThread shardConsumer outFromWorkers numberOfThreads [] 0 consState) (threadDeathHandler consumerThreadMvar "Consumer")
     
     --Create the worker threads that will process the sharded data.
     workerThreadList <- createWorkerThreads numberOfThreads shardWorker workState outToWorkers inFromWorkers
@@ -100,10 +102,16 @@ createWorkerThreads numOfThreads shardWorker workState outToWorkers inFromWorker
           --and recurse.
           spawnThreads count acc = do
             threadMvar <- newEmptyMVar
-            _ <- forkFinally (shardWorkerThread shardWorker workState outToWorkers inFromWorkers) (\_ -> putMVar threadMvar ())
+            _ <- forkFinally (shardWorkerThread shardWorker workState outToWorkers inFromWorkers) (threadDeathHandler threadMvar "Worker")
             spawnThreads (count - 1) (threadMvar:acc)
 
-
+threadDeathHandler :: Show b => MVar () -> String -> Either b a -> IO ()
+threadDeathHandler threadMvar threadName event = do
+    putMVar threadMvar ()
+    case event of
+         Left exception -> error $ "Error " ++ threadName ++ " Thread died with error: " ++ show exception
+         Right _ -> return ()
+            
 -- | The number of worker thereads spawned defaults to the number
 --   of of capabilities available. 
 defaultNumberOfThreads :: IO Int
@@ -114,7 +122,7 @@ defaultNumberOfThreads = getNumCapabilities
 defaultQueueSize :: IO Int
 defaultQueueSize = do
     n <- defaultNumberOfThreads
-    return (n * 16)
+    return (n * 512)
 
     
 -- | This function blocks until all threads have quit.

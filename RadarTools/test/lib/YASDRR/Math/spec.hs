@@ -6,7 +6,7 @@ import Test.QuickCheck
 import Test.Framework.Providers.HUnit
 import Test.HUnit
 import Data.Word
-import OFDMRadar.Math.Misc
+import YASDRR.Math.Misc
 import qualified Data.Vector as V
 import Data.List
 

@@ -1,7 +1,7 @@
 --Copyright Robert C. Taylor, All Rights Reserved
 
 import Data.Complex
-import qualified OFDMRadar.Threading.Sharding as RMS
+import qualified YASDRR.Threading.Sharding as RMS
 import qualified Data.ByteString as B
 import System.Environment
 import System.Console.GetOpt as GetOpt
@@ -10,8 +10,8 @@ import System.Exit
 import Data.List    
 import Data.List.Split       
 import qualified Data.Vector as V
-import OFDMRadar.IO.ComplexSerialization
-import OFDMRadar.SDR.OFDMModulation
+import YASDRR.IO.ComplexSerialization
+import YASDRR.SDR.OFDMModulation
 
 
 --Program options record

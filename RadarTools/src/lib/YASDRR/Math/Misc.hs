@@ -1,7 +1,7 @@
 --Copyright Robert C. Taylor
 
 {- |
-Module      :  OFDMRadar.Math.Misc
+Module      :  YASDRR.Math.Misc
 Description :  Misc math functions
 Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
@@ -11,10 +11,10 @@ Stability   :  unstable
 Portability :  portable 
 
 Several mathmatical functions used as primitives by other more complex 
-operations in OFDMRadar tools library.
+operations in YASDRR tools library.
 -}
 
-module OFDMRadar.Math.Misc where
+module YASDRR.Math.Misc where
 
 import Data.Bits
 import qualified Data.Vector as V

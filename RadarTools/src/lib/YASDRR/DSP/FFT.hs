@@ -1,7 +1,7 @@
 --Copyright Robert C. Taylor - All Rights Reserved
 
 {- |
-Module      :  OFDMRadar.DSP.FFT
+Module      :  YASDRR.DSP.FFT
 Description :  Functions to calculate the FFT of lists and vectors data.
 Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
@@ -17,7 +17,7 @@ post FFT processing.
 
 {-# LANGUAGE ForeignFunctionInterface #-}
 
-module OFDMRadar.DSP.FFT (
+module YASDRR.DSP.FFT (
                               createFft
                             , createFftV
                             , cyclicShiftV

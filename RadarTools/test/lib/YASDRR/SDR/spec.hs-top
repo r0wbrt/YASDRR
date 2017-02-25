@@ -6,16 +6,16 @@ import Test.QuickCheck
 import Test.Framework.Providers.HUnit
 import Test.HUnit
 import Data.Word
-import OFDMRadar.Math.Misc
+import YASDRR.Math.Misc
 import qualified Data.Vector as V
 import Data.List
 import Data.Array
-import OFDMRadar.SDR.Converters
-import OFDMRadar.SDR.OFDMModulation
-import OFDMRadar.SDR.DopplerRadar
+import YASDRR.SDR.Converters
+import YASDRR.SDR.OFDMModulation
+import YASDRR.SDR.DopplerRadar
 import Data.Complex
 import qualified Data.ByteString as B
-import qualified OFDMRadar.SDR.MorseCode as Morse
+import qualified YASDRR.SDR.MorseCode as Morse
 
 main :: IO ()
 main = defaultMain tests

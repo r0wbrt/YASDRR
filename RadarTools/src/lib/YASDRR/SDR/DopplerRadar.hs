@@ -1,7 +1,7 @@
 -- Copyright Robert C. Taylor
 
 {- |
-Module      :  OFDMRadar.SDR.DopplerRadar
+Module      :  YASDRR.SDR.DopplerRadar
 Description :  Functions that can be used to build a doppler radar.
 Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
@@ -14,12 +14,12 @@ Primitive functions that are used to write functions and programs that perform
 doppler processing on radar input.
 -}
 
-module OFDMRadar.SDR.DopplerRadar where
+module YASDRR.SDR.DopplerRadar where
 
 import qualified Data.Vector as V
 import Data.List
-import OFDMRadar.DSP.FFT
-import OFDMRadar.Math.Misc
+import YASDRR.DSP.FFT
+import YASDRR.Math.Misc
 import Data.Complex
 
 --Process a doppler return given the pulses stored as a 2-d vector of vectors.

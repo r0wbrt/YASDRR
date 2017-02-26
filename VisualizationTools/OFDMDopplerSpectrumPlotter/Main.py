@@ -23,6 +23,7 @@ import struct
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import matplotlib.colors as colors
 
 def main():
     
@@ -58,7 +59,8 @@ def main():
             (real, imag) = struct.unpack('ff', data)
             
             
-            z[yPos,xPos] = math.sqrt(real*real + imag*imag)
+            z[yPos,xPos] = math.sqrt(real*real + imag*imag) + .0000000001
+            
             
     
     plt.pcolormesh(x,y,z, cmap="PuBu_r", vmin=z.min(), vmax=z.max())

@@ -99,7 +99,8 @@ processData chirp pulseWindow signalReader signalWriter = do
              signalWriter compressedReturn
              processData chirp pulseWindow signalReader signalWriter
          Nothing -> return ()
-
+         
+         
 readInput :: Int -> Int -> Opts.SampleFormat -> (Int -> IO B.ByteString) -> IO (Maybe (V.Vector (Complex Double)))
 readInput signalLength pulseTruncationLength sampleFormat reader = do    
         
@@ -107,21 +108,22 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
     
     return $ if B.length fileBlock < signalLengthBytes then Nothing 
                     else Just $ deserializer (B.take (B.length fileBlock - truncationLengthBytes) fileBlock) 
-
+    
     where sampleSize = case sampleFormat of
                         Opts.SampleComplexDouble -> 16
                         Opts.SampleComplexFloat -> 8
                         Opts.SampleComplexSigned16 -> 4
-
+          
           signalLengthBytes = signalLength * sampleSize
           truncationLengthBytes = sampleSize * pulseTruncationLength
+          
           deserializer bString = V.fromList $ fst $ IOComplex.deserializeBlock decoder bString
             where decoder = case sampleFormat of
                                 Opts.SampleComplexDouble -> IOComplex.complexDoubleDeserializer
                                 Opts.SampleComplexFloat -> IOComplex.complexFloatDeserializer
                                 Opts.SampleComplexSigned16 -> IOComplex.complexSigned16Deserializer 1.0
           
-        
+          
 getPulseWindow :: Opts.SignalWindow -> Int -> Maybe (V.Vector (Complex Double))
 getPulseWindow window n = case window of
                           Opts.HammingWindow -> Just $ V.map (\s -> s :+ 0) $ Windows.hammingWindowV n

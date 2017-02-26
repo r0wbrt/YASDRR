@@ -25,7 +25,6 @@ import Data.Complex
 import qualified Data.ByteString as B
 
 
-
 main :: IO ()
 main = do
     arguments <- getArgs

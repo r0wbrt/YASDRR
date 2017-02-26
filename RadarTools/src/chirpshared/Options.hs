@@ -282,7 +282,7 @@ inputAmplitude = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler
           longOptionNames = ["amplitude", "Amplitude"]
           shortOptionsNames = []
           argExp = "amplitude"
-          handler input opts = return $ opts {optSilenceLength = read input::Int}
+          handler input opts = return $ opts {optAmplitude = read input::Double}
           
           
 inputChirpWindow :: OptDescr (ProgramOptions -> IO ProgramOptions)

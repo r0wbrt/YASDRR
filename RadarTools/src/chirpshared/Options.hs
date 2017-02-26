@@ -16,12 +16,16 @@ need to be redistributed as a library.
 
 module Options where
 
-import qualified Data.Char as DChar
-import qualified Data.ByteString as B
 import System.Environment
 import System.Console.GetOpt as GetOpt
 import System.IO
 import System.Exit
+import Data.Complex
+import qualified Data.Char as DChar
+import qualified Data.ByteString as B
+import qualified Data.Vector as V
+import qualified YASDRR.DSP.Windows as Windows
+import qualified YASDRR.IO.ComplexSerialization as IOComplex
 
 data RiseUnits = RiseUnitsSeconds | RiseUnitsSamples
 
@@ -35,16 +39,20 @@ data SignalWindow = HammingWindow | NoWindow
 data ProgramOptions = ProgramOptions 
  { optStartFrequency :: Double
  , optEndFrequency :: Double
+ , optFrequencyShift :: Double
  , optSampleRate :: Double
  , optRiseTime :: Double
  , optRiseUnit :: RiseUnits
- , optSampleFormat :: SampleFormat
+ , optInputSampleFormat :: SampleFormat
+ , optOutputSampleFormat :: SampleFormat
  , optInputReader :: Int -> IO B.ByteString
  , optOutputWriter :: B.ByteString -> IO ()
  , optSilenceLength :: Int
+ , optSilenceTruncateLength :: Int
  , optRepetitions :: Int
  , optAmplitude :: Double
- , optWindow :: SignalWindow
+ , optChirpWindow :: SignalWindow
+ , optSignalWindow :: SignalWindow
  , optCloseInput :: IO ()
  , optCloseOutput :: IO ()
  }
@@ -54,18 +62,22 @@ startOptions :: ProgramOptions
 startOptions = ProgramOptions
  { optStartFrequency = 0
  , optEndFrequency = 8000
+ , optFrequencyShift = 0
  , optSampleRate = 44100
  , optRiseTime = 3
  , optRiseUnit = RiseUnitsSeconds
- , optSampleFormat = SampleComplexDouble
+ , optInputSampleFormat = SampleComplexDouble
+ , optOutputSampleFormat = SampleComplexDouble
  , optInputReader = safeReader stdin
  , optOutputWriter = B.hPut stdout
  , optCloseInput = hClose stdin
  , optCloseOutput = hClose stdout
  , optSilenceLength = 44100
+ , optSilenceTruncateLength = 0
  , optRepetitions = -1
  , optAmplitude = 0.5
- , optWindow = NoWindow
+ , optChirpWindow = NoWindow
+ , optSignalWindow = NoWindow
  }
  
  
@@ -73,14 +85,13 @@ chirpOptionList :: [OptDescr (ProgramOptions -> IO ProgramOptions)]
 chirpOptionList = 
     [ inputStartFrequency
     , inputEndFrequency
+    , inputSampleRate
+    , inputFrequencyShift
     , inputRiseTime
     , inputRiseSamples
-    , inputSignalFormat
+    , inputOutputSignalFormat
     , inputSilenceLength
-    , inputRepetitions
-    , inputAmplitude
-    , inputWindow
-    , inputFileInput
+    , inputChirpWindow
     , inputFileOutput
     ]
     
@@ -108,11 +119,23 @@ commonMessage =
     
  
 chirpRadarRxOptions :: [OptDescr (ProgramOptions -> IO ProgramOptions)]
-chirpRadarRxOptions = chirpOptionList ++ [optionHelp chirpRadarRxOptions, optionAbout chirpRadarRxOptions $ unlines $ ["", "This program processes a received chirp radar signal", ""] ++ commonMessage]
+chirpRadarRxOptions = chirpOptionList ++ [
+      inputSilenceTruncationLength
+    , inputSignalWindow
+    , inputFileInput
+    , inputInputSignalFormat
+    , optionHelp chirpRadarRxOptions
+    , optionAbout chirpRadarRxOptions $ unlines $ ["", "This program processes a received chirp radar signal", ""] ++ commonMessage
+    ]
     
     
 chirpRadarTxOptions :: [OptDescr (ProgramOptions -> IO ProgramOptions)]
-chirpRadarTxOptions = chirpOptionList ++ [optionHelp chirpRadarTxOptions, optionAbout chirpRadarTxOptions $ unlines $ ["", "This program transmits a chirp radar signal", ""] ++ commonMessage]
+chirpRadarTxOptions = chirpOptionList ++ [
+      inputRepetitions
+    , inputAmplitude
+    , optionHelp chirpRadarTxOptions
+    , optionAbout chirpRadarTxOptions $ unlines $ ["", "This program transmits a chirp radar signal", ""] ++ commonMessage
+    ]
     
     
 processInput :: [ProgramOptions -> IO ProgramOptions] -> IO ProgramOptions
@@ -158,6 +181,15 @@ inputEndFrequency = GetOpt.Option shortOptionsNames longOptionNames (ReqArg hand
           handler input opts = return $ opts { optEndFrequency = read input::Double }
           
           
+inputFrequencyShift :: OptDescr (ProgramOptions -> IO ProgramOptions)
+inputFrequencyShift = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+    where description = "Frequency shift of the signal"
+          longOptionNames = ["frequencyShift", "FrequencyShift"]
+          shortOptionsNames = []
+          argExp = "frequency * hz * s^-1"
+          handler input opts = return $ opts { optFrequencyShift = read input::Double }
+          
+          
 inputSampleRate :: OptDescr (ProgramOptions -> IO ProgramOptions)
 inputSampleRate = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
     where description = "Sample rate of signal"
@@ -185,14 +217,30 @@ inputRiseSamples = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handl
           handler input opts = return $ opts {optRiseTime = read input::Double, optRiseUnit = RiseUnitsSamples  }
           
           
-inputSignalFormat :: OptDescr (ProgramOptions -> IO ProgramOptions)
-inputSignalFormat = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
-    where description = "Format of signal"
-          longOptionNames = ["signalFormat", "SignalFormat"]
+inputInputSignalFormat :: OptDescr (ProgramOptions -> IO ProgramOptions)
+inputInputSignalFormat = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+    where description = "Format of input signal"
+          longOptionNames = ["signalInputFormat", "SignalInputFormat"]
           shortOptionsNames = []
           argExp = "Double | Float | Signed16"
           handler input opts = return $ opts 
-            { optSampleFormat = 
+            { optInputSampleFormat = 
+                case map (DChar.toUpper) input of
+                     "DOUBLE" -> SampleComplexDouble
+                     "FLOAT" -> SampleComplexFloat
+                     "SIGNED16" -> SampleComplexSigned16
+                     _ -> error "Invalid signal format"
+            }
+            
+            
+inputOutputSignalFormat :: OptDescr (ProgramOptions -> IO ProgramOptions)
+inputOutputSignalFormat = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+    where description = "Format of output signal"
+          longOptionNames = ["signalOutputFormat", "SignalOutputFormat"]
+          shortOptionsNames = []
+          argExp = "Double | Float | Signed16"
+          handler input opts = return $ opts 
+            { optOutputSampleFormat = 
                 case map (DChar.toUpper) input of
                      "DOUBLE" -> SampleComplexDouble
                      "FLOAT" -> SampleComplexFloat
@@ -208,6 +256,15 @@ inputSilenceLength = GetOpt.Option shortOptionsNames longOptionNames (ReqArg han
           shortOptionsNames = []
           argExp = "samples"
           handler input opts = return $ opts {optSilenceLength = read input::Int}
+          
+          
+inputSilenceTruncationLength :: OptDescr (ProgramOptions -> IO ProgramOptions)
+inputSilenceTruncationLength = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+    where description = "Reduce the length of a processing interval"
+          longOptionNames = ["truncationLength", "TruncationLength"]
+          shortOptionsNames = []
+          argExp = "samples"
+          handler input opts = return $ opts {optSilenceTruncateLength = read input::Int}
           
           
 inputRepetitions :: OptDescr (ProgramOptions -> IO ProgramOptions)
@@ -228,14 +285,29 @@ inputAmplitude = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler
           handler input opts = return $ opts {optSilenceLength = read input::Int}
           
           
-inputWindow :: OptDescr (ProgramOptions -> IO ProgramOptions)
-inputWindow = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
-    where description = "Window to use on the signal"
-          longOptionNames = ["window", "Window"]
+inputChirpWindow :: OptDescr (ProgramOptions -> IO ProgramOptions)
+inputChirpWindow = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+    where description = "Window to use on the chirp"
+          longOptionNames = ["chirpWindow", "ChirpWindow"]
           shortOptionsNames = []
           argExp = "Hamming | None"
           handler input opts = return $ opts 
-            { optWindow = 
+            { optChirpWindow = 
+                case map (DChar.toUpper) input of
+                     "HAMMING" -> HammingWindow
+                     "NONE" -> NoWindow
+                     _ -> error "Invalid window format"
+            }
+            
+            
+inputSignalWindow :: OptDescr (ProgramOptions -> IO ProgramOptions)
+inputSignalWindow = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+    where description = "Window to use on the radar pulse"
+          longOptionNames = ["pulseWindow", "PulseWindow"]
+          shortOptionsNames = []
+          argExp = "Hamming | None"
+          handler input opts = return $ opts 
+            { optSignalWindow = 
                 case map (DChar.toUpper) input of
                      "HAMMING" -> HammingWindow
                      "NONE" -> NoWindow
@@ -273,3 +345,24 @@ safeReader h size = do
         return B.empty
     else
         B.hGet h size
+        
+        
+calculateSignalLength :: ProgramOptions -> Double
+calculateSignalLength settings = case optRiseUnit settings of
+                                      RiseUnitsSeconds -> rate * input
+                                      RiseUnitsSamples -> input
+    where input = optRiseTime settings
+          rate = optSampleRate settings
+          
+          
+getChirpWindow :: SignalWindow -> Int -> V.Vector (Double)
+getChirpWindow window n = case window of
+                          HammingWindow -> Windows.hammingWindowV n
+                          NoWindow -> V.replicate n 1.0
+                          
+                          
+serializeOutput :: SampleFormat -> V.Vector (Complex Double) -> B.ByteString
+serializeOutput format signal = case format of
+                                   SampleComplexDouble -> IOComplex.serializeBlockV IOComplex.complexDoubleSerializer signal
+                                   SampleComplexFloat -> IOComplex.serializeBlockV IOComplex.complexFloatSerializer signal
+                                   SampleComplexSigned16 -> IOComplex.serializeBlockV (IOComplex.complexSigned16Serializer 1.0) signal

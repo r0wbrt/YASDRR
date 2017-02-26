@@ -23,7 +23,8 @@ module YASDRR.IO.ComplexSerialization (
             blockListSerializer, complexFloatSerializer,
             complexFloatDeserializer, complexSC11Deserializer,
             complexSC11Serializer, complexSigned16Serializer,
-            complexDoubleSerializer, serializeBlockV) where
+            complexDoubleSerializer, serializeBlockV,
+            complexDoubleDeserializer, complexSigned16Deserializer) where
 
 import qualified Data.Binary.Get as BG
 import qualified Data.Binary.Put as BP
@@ -145,8 +146,32 @@ complexFloatDeserializer = do
     imaginary <- BG.getFloatle
     
     return (float2Double real :+ float2Double imaginary)
-
-
+    
+    
+complexDoubleDeserializer :: BG.Get (Complex Double)
+complexDoubleDeserializer = do
+    
+    real <- BG.getDoublele 
+    imaginary <- BG.getDoublele
+    
+    return (real :+ imaginary)
+    
+    
+complexSigned16Deserializer :: Double -> BG.Get (Complex Double)
+complexSigned16Deserializer base = do
+    
+    --First parse the data from the stream
+    real <- BG.getWord16le
+    imaginary <- BG.getWord16le
+    
+    --Next scale the data accordingly
+    let realD = ((fromIntegral real) * base) / 32768.0
+    let imagD = ((fromIntegral imaginary) * base) / 32768.0
+    
+    --Return the result.
+    return (realD :+ imagD)
+    
+    
 complexSC11Serializer :: Complex Double -> BP.Put
 complexSC11Serializer (real :+ imaginary) = do
     

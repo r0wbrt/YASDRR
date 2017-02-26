@@ -19,7 +19,7 @@ cabal-version:       >=1.10
 library
     build-depends:    base, vector, unagi-chan, array, bytestring, binary >= 0.8.4.1, hashmap
     default-language: Haskell2010
-    ghc-options:      -Wall -Werror -O2 -fexcess-precision -optc-O3 -optc-ffast-math -threaded -with-rtsopts=-N -fllvm
+    ghc-options:      -Wall -Werror -O2 -optc-O3 -threaded -with-rtsopts=-N -fllvm
     hs-source-dirs:   src/lib
     c-sources: src/lib/YASDRR/DSP/FFT.c
     exposed-modules:  YASDRR.DSP.FFT
@@ -108,7 +108,7 @@ test-suite hlint
                       
 executable             ofdmtx
   main-is:             Main.hs
-  ghc-options:      -Wall -Werror -O2 -fexcess-precision -optc-O3 -optc-ffast-math -threaded -with-rtsopts=-N -fllvm
+  ghc-options:      -Wall -Werror -O2 -optc-O3 -threaded -with-rtsopts=-N -fllvm
   build-depends:
     base,
     YASDRR,
@@ -124,7 +124,7 @@ executable             ofdmtx
   
 executable             ofdmrx
   main-is:             Main.hs
-  ghc-options:      -Wall -Werror -O2 -fexcess-precision -optc-O3 -optc-ffast-math -threaded -with-rtsopts=-N  -fllvm
+  ghc-options:      -Wall -Werror -O2 -optc-O3 -threaded -with-rtsopts=-N  -fllvm
   build-depends:       base,
                        YASDRR,
                        vector,
@@ -136,7 +136,7 @@ executable             ofdmrx
   
 executable             morse
   main-is:             Main.hs
-  ghc-options:      -Wall -Werror -O2 -fexcess-precision -optc-O3 -optc-ffast-math
+  ghc-options:      -Wall -Werror -O2 -optc-O3 -fllvm
   build-depends:       base,
                        YASDRR,
                        bytestring
@@ -146,7 +146,7 @@ executable             morse
 
 executable             chirptx
   main-is:             Main.hs
-  ghc-options:      -Wall -Werror -O2 -fexcess-precision -optc-O3 -optc-ffast-math -threaded -with-rtsopts=-N -fllvm
+  ghc-options:      -Wall -Werror -O2 -optc-O3 -fllvm
   build-depends:
     base,
     YASDRR,
@@ -154,4 +154,17 @@ executable             chirptx
     vector
     
   hs-source-dirs:      src/chirptx, src/chirpshared
+  default-language:    Haskell2010
+  
+  
+executable             chirprx
+  main-is:             Main.hs
+  ghc-options:      -Wall -Werror -O2 -optc-O3 -fllvm
+  build-depends:
+    base,
+    YASDRR,
+    bytestring,
+    vector
+    
+  hs-source-dirs:      src/chirprx, src/chirpshared
   default-language:    Haskell2010

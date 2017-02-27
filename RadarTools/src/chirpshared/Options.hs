@@ -148,7 +148,7 @@ optionAbout options extraInfo  = GetOpt.Option shortOptionsNames longOptionNames
           shortOptionsNames = []
           handler _ = do
               prg <- getProgName
-              hPutStrLn stderr $ (GetOpt.usageInfo ("Usage: "++prg++" [OPTIONS...]") options) ++ extraInfo
+              hPutStrLn stderr $ GetOpt.usageInfo ("Usage: "++prg++" [OPTIONS...]") options ++ extraInfo
               exitSuccess
               
               
@@ -225,7 +225,7 @@ inputInputSignalFormat = GetOpt.Option shortOptionsNames longOptionNames (ReqArg
           argExp = "Double | Float | Signed16"
           handler input opts = return $ opts 
             { optInputSampleFormat = 
-                case map (DChar.toUpper) input of
+                case map DChar.toUpper input of
                      "DOUBLE" -> SampleComplexDouble
                      "FLOAT" -> SampleComplexFloat
                      "SIGNED16" -> SampleComplexSigned16
@@ -241,7 +241,7 @@ inputOutputSignalFormat = GetOpt.Option shortOptionsNames longOptionNames (ReqAr
           argExp = "Double | Float | Signed16"
           handler input opts = return $ opts 
             { optOutputSampleFormat = 
-                case map (DChar.toUpper) input of
+                case map DChar.toUpper input of
                      "DOUBLE" -> SampleComplexDouble
                      "FLOAT" -> SampleComplexFloat
                      "SIGNED16" -> SampleComplexSigned16
@@ -293,7 +293,7 @@ inputChirpWindow = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handl
           argExp = "Hamming | None"
           handler input opts = return $ opts 
             { optChirpWindow = 
-                case map (DChar.toUpper) input of
+                case map DChar.toUpper input of
                      "HAMMING" -> HammingWindow
                      "NONE" -> NoWindow
                      _ -> error "Invalid window format"
@@ -308,7 +308,7 @@ inputSignalWindow = GetOpt.Option shortOptionsNames longOptionNames (ReqArg hand
           argExp = "Hamming | None"
           handler input opts = return $ opts 
             { optSignalWindow = 
-                case map (DChar.toUpper) input of
+                case map DChar.toUpper input of
                      "HAMMING" -> HammingWindow
                      "NONE" -> NoWindow
                      _ -> error "Invalid window format"
@@ -355,7 +355,7 @@ calculateSignalLength settings = case optRiseUnit settings of
           rate = optSampleRate settings
           
           
-getChirpWindow :: SignalWindow -> Int -> V.Vector (Double)
+getChirpWindow :: SignalWindow -> Int -> V.Vector Double
 getChirpWindow window n = case window of
                           HammingWindow -> Windows.hammingWindowV n
                           NoWindow -> V.replicate n 1.0

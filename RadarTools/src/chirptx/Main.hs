@@ -26,6 +26,7 @@ import qualified Data.ByteString as B
 
 
 main :: IO ()
+{-# ANN module "HLint: ignore Use :" #-}
 main = do
     arguments <- getArgs
     case GetOpt.getOpt GetOpt.RequireOrder Opts.chirpRadarTxOptions arguments of
@@ -74,7 +75,7 @@ writeOutput _ _ 0 = return ()
 
 writeOutput writer signal count = do
     
-    let newCount = if count /= -1 then (count - 1) else -1
+    let newCount = if count /= -1 then count - 1 else -1
     
     writer signal
     writeOutput writer signal newCount

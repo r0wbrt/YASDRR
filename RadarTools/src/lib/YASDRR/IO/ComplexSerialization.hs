@@ -35,6 +35,7 @@ import GHC.Float
 import Control.Exception
 import Data.Typeable
 import qualified Data.Vector as V
+import qualified Control.Monad as CM
 
 
 data BinaryParserExceptions = DidNotExpectIncompleteData String 
@@ -94,11 +95,10 @@ serializeBlockV encoder block = BL.toStrict $ BP.runPut puter
     where puter = serializationStreamProcessorV encoder block
     
     
-serializationStreamProcessorV :: (a -> BP.Put) -> V.Vector (a) -> BP.Put
+serializationStreamProcessorV :: (a -> BP.Put) -> V.Vector a -> BP.Put
 serializationStreamProcessorV parser vector = do
     parser $ V.unsafeHead vector 
-    if V.length vector > 1 then serializationStreamProcessorV parser (V.tail vector) 
-                  else return ()
+    CM.when (V.length vector > 1) $ serializationStreamProcessorV parser (V.tail vector) 
     
     
 blockListDeserializer :: BG.Get a -> Int -> BG.Get [a]
@@ -165,8 +165,8 @@ complexSigned16Deserializer base = do
     imaginary <- BG.getWord16le
     
     --Next scale the data accordingly
-    let realD = ((fromIntegral real) * base) / 32768.0
-    let imagD = ((fromIntegral imaginary) * base) / 32768.0
+    let realD = (fromIntegral real * base) / 32768.0
+    let imagD = (fromIntegral imaginary * base) / 32768.0
     
     --Return the result.
     return (realD :+ imagD)

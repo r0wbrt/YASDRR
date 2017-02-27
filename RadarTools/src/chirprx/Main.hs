@@ -28,6 +28,7 @@ import qualified YASDRR.IO.ComplexSerialization as IOComplex
 import qualified YASDRR.DSP.Windows as Windows
 
 main :: IO () 
+{-# ANN module "HLint: ignore Use :" #-}
 main = do
     arguments <- getArgs
     case GetOpt.getOpt GetOpt.RequireOrder Opts.chirpRadarRxOptions arguments of
@@ -87,7 +88,7 @@ compressReturn chirp pulseWindow signal = Cor.correlateV chirp windowedSignal
                                 
 processData :: V.Vector (Complex Double) ->
                 Maybe (V.Vector (Complex Double)) -> 
-                 (IO (Maybe ( V.Vector (Complex Double) ) ) ) -> 
+                 IO (Maybe ( V.Vector (Complex Double) ) )  -> 
                   (V.Vector (Complex Double) -> IO ()) -> IO ()
 processData chirp pulseWindow signalReader signalWriter = do
     
@@ -126,7 +127,7 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
           
 getPulseWindow :: Opts.SignalWindow -> Int -> Maybe (V.Vector (Complex Double))
 getPulseWindow window n = case window of
-                          Opts.HammingWindow -> Just $ V.map (\s -> s :+ 0) $ Windows.hammingWindowV n
+                          Opts.HammingWindow -> Just $ V.map (:+ 0) $ Windows.hammingWindowV n
                           Opts.NoWindow -> Nothing
 
 

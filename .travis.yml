@@ -1,7 +1,7 @@
 # explicitly request legacy non-sudo based build environment
 sudo: required
 
-env: CABALVER=head GHCVER=head   
+env: CABALVER=1.24 GHCVER=8.0.2   
 
 
 before_install: 

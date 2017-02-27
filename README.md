@@ -1,28 +1,31 @@
 # YASDRR
 
-[![Build Status](https://travis-ci.org/r0wbrt/OFDMRadar.svg?branch=master)](https://travis-ci.org/r0wbrt/OFDMRadar)
+YASDRR - Yet Another Software Defined Radio Radar.
 
-Functionality to transmit and receive radar signals and process them. This 
-project is primaraly written in Haskell with the FFT used by the project
-written in C. Python and R used to automate some of the development tasks.
-
-Python is also used to automate the capturing of radar signals, processing it,
-and visualizing it. Though, python is not needed to build the actual OFDM Radar
-processing tools and associated library. 
+YASDRR is a collection of libaries and executables, written primary in Haskell,
+for generating and processing radar waveforms. As of the moment, the library 
+supports chirp compression radar and OFDM compression radar. Future integration
+with a BladeRF based front end is under development. The eventual goal is to 
+build up enough functionality to support Synthetic Aperture Based Radar.
 
 ## How To Build
 
 To build the software, open the RadarTools directory, run cabal configure 
 and then cabal build. The resulting utilities and libraries will then be 
-placed in RadarTools/dist/build. 
+placed in RadarTools/dist/build. As of the moment, cabal building is flaky 
+because of depedency issues.
 
 ## References
-Tigrek, Recep Firat. "A processing technique for OFDM-modulated wideband radar 
-signals." PhD diss., TU Delft, Delft University of Technology, 2010.
+Eaves, Jerry, and Edward Reedy. Principles of modern radar. Springer Science & Business Media, 2012.
 
-# Patents
-This software may be covered by US patent US8081105B2. I am not a lawyer though
-so I can not render a legal statement on this subject.
+Tigrek, Recep Firat. "A processing technique for OFDM-modulated wideband radar signals." PhD diss., TU Delft, Delft University of Technology, 2010.
+
+Wikipedia contributors, "Chirp," Wikipedia, The Free Encyclopedia, https://en.wikipedia.org/w/index.php?title=Chirp&oldid=747594351 (accessed February 26, 2017).
+
+Wikipedia contributors, "Chirp compression," Wikipedia, The Free Encyclopedia, https://en.wikipedia.org/w/index.php?title=Chirp_compression&oldid=760131952 (accessed February 26, 2017).
+
+## Patents
+Parts of this software may be covered by US patent US8081105B2. 
 
 
 

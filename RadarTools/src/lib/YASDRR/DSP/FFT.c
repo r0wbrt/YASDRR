@@ -24,7 +24,8 @@ void fft(double * signal, double * coefs, int * workArea, int direction, int siz
     
     if(direction == 1)
     {
-        for (int j = 0; j <= 2 * size - 1; j++) 
+        int j;
+        for (j = 0; j <= 2 * size - 1; j++) 
         {
             signal[j] *= 1.0 / size;
         }    

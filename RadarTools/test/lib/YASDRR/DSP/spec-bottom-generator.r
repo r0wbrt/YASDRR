@@ -30,7 +30,7 @@ formatAssertEqual <- function(string, a, b) {
 formatComplexList <- function(list,vector) {
 
     if(vector) {
-        buffer = "(V.fromList ["
+        buffer = "(VUB.fromList ["
     } else {
         buffer = "(["
     }
@@ -57,7 +57,7 @@ formatDoubleListCheck <- function(list1, list2) {
 
 formatShiftFunction <- function(shift,size,signal,vector) {
     if(vector) {
-        return(sprintf("(V.toList (cyclicShiftV (%f) (%d) %s))", shift, size, signal))
+        return(sprintf("(VUB.toList (cyclicShiftV (%f) (%d) %s))", shift, size, signal))
     } else {
         return(sprintf("(cyclicShift (%f) (%d) %s)", shift, size, signal))
     }
@@ -126,7 +126,7 @@ cyclicShiftMatrixTestCase <- function(shift,size,vector) {
     inputBuffer = ""
     
     if(vector) {
-        inputBuffer = "( V.fromList ["
+        inputBuffer = "( VB.fromList ["
     } else {
         inputBuffer = "(["
     }
@@ -154,7 +154,7 @@ cyclicShiftMatrixTestCase <- function(shift,size,vector) {
     inputFunc = ""
     
     if(vector) {
-        inputFunc = sprintf("(concat $ map (V.toList) $ V.toList (cyclicMutateMatrixV (%f) (%d) (%s)))", shift, size,inputBuffer)
+        inputFunc = sprintf("(concat $ map (VUB.toList) $ VB.toList (cyclicMutateMatrixV (%f) (%d) (%s)))", shift, size,inputBuffer)
     } else {
         inputFunc = sprintf("(concat (cyclicMutateMatrix (%f) (%d) (%s)))", shift, size,inputBuffer)
     }

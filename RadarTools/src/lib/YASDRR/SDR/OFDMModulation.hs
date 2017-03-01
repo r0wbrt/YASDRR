@@ -27,7 +27,7 @@ import Data.Word
 import qualified Data.Array as Array
 
 import Data.Complex
-import qualified Data.Vector as V
+import qualified Data.Vector as VB
 import qualified Data.Vector.Unboxed as VUB
 
 -- | extends an OFDM symbol by applying silence and cyclic prefix to it.
@@ -81,9 +81,9 @@ encodeOFDMSymbol symbolSize symbolMapping carrierCount dataBlock =
 
 -- | Demodulates an OFDM Radar return. 
 processOfdmRadarReturnV :: VUB.Vector (Complex Double) -> Double -> 
-                                    V.Vector (VUB.Vector (Complex Double)) -> 
-                                        V.Vector (VUB.Vector (Complex Double))
+                                    VB.Vector (VUB.Vector (Complex Double)) -> 
+                                        VB.Vector (VUB.Vector (Complex Double))
 processOfdmRadarReturnV impulse shift pulses = 
     DopplerRadar.processDopplerReturnV $
-        V.map (Correlation.correlateV impulse) $
-            DSPFft.cyclicMutateMatrixV shift (VUB.length $ pulses V.! 0) pulses
+        VB.map (Correlation.correlateV impulse) $
+            DSPFft.cyclicMutateMatrixV shift (VUB.length $ pulses VB.! 0) pulses

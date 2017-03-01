@@ -17,18 +17,18 @@ number sequences.
 
 module YASDRR.DSP.Correlation (correlate, correlateV) where
 
-import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed as VUB
 import Data.Complex
 
 -- | Vector based correlation using complex numbers.
-correlateV :: V.Vector (Complex Double) -> V.Vector (Complex Double) 
-                    -> V.Vector (Complex Double)
+correlateV :: VUB.Vector (Complex Double) -> VUB.Vector (Complex Double) 
+                    -> VUB.Vector (Complex Double)
 correlateV impulse pulse
-    | impulse == V.empty = pulse
-    | otherwise = V.generate (V.length pulse) compress
-    where compress offset = V.sum $ V.zipWith (*) 
-                                        conjImpulse (V.unsafeDrop offset pulse)
-          conjImpulse = V.map conjugate impulse
+    | impulse == VUB.empty = pulse
+    | otherwise = VUB.generate (VUB.length pulse) compress
+    where compress offset = VUB.sum $ VUB.zipWith (*) 
+                                        conjImpulse (VUB.unsafeDrop offset pulse)
+          conjImpulse = VUB.map conjugate impulse
 
           
 -- | Complex correlation over a list.
@@ -37,14 +37,14 @@ correlate impulse signal = map loopFunction [0..(length signal - 1)]
                                     
     where conjImpulse = map conjugate impulse
           loopFunction = correlateLoop conjImpulse signalArray (length signal) 0
-          signalArray = V.fromList signal
+          signalArray = VUB.fromList signal
 
 --Correlation accumulator loop, written based on profiling data
-correlateLoop :: [Complex Double] -> V.Vector (Complex Double) -> Int 
+correlateLoop :: [Complex Double] -> VUB.Vector (Complex Double) -> Int 
                         -> Complex Double -> Int -> Complex Double
 correlateLoop [] _ _ acc _  = acc
 correlateLoop impulse signal signalSize acc offset
     | offset == signalSize = acc
     | otherwise = acc `seq` correlateLoop (tail impulse) signal signalSize 
-                    ( ( (V.unsafeIndex signal offset) * head impulse ) + acc)
+                    ( ( VUB.unsafeIndex signal offset * head impulse ) + acc)
                     (offset + 1)

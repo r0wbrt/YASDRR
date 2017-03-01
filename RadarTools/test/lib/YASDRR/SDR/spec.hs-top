@@ -7,7 +7,8 @@ import Test.Framework.Providers.HUnit
 import Test.HUnit
 import Data.Word
 import YASDRR.Math.Misc
-import qualified Data.Vector as V
+import qualified Data.Vector as VB
+import qualified Data.Vector.Unboxed as VUB
 import Data.List
 import Data.Array
 import YASDRR.SDR.Converters
@@ -134,9 +135,9 @@ symbolTestSize4 = assertEqual "Symbol Pattern should match" sampleConst output
           output = reverse $ bytesToSymbols 4 constellation sampleConstBlock
           sampleConst = [7 :+ 7, 5 :+ 5] ++ [10.0 :+ 10.0, 10.0 :+ 10.0 ]
           
-processOfdmRadarReturnVFlat a b c = concat $ map (\a -> V.toList a) (V.toList $ processOfdmRadarReturnV a b c)
+processOfdmRadarReturnVFlat a b c = concat $ map (\a -> VUB.toList a) (VB.toList $ processOfdmRadarReturnV a b c)
 processDopplerReturnFlatten a = concat $ processDopplerReturn a
-processDopplerReturnFlattenV a = concat $ map (\a -> V.toList a) (V.toList $  processDopplerReturnV a)
+processDopplerReturnFlattenV a = concat $ map (\a -> VUB.toList a) (VB.toList $  processDopplerReturnV a)
 
 
 

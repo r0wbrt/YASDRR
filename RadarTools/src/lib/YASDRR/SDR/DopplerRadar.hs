@@ -16,7 +16,7 @@ doppler processing on radar input.
 
 module YASDRR.SDR.DopplerRadar where
 
-import qualified Data.Vector as V
+import qualified Data.Vector as VB
 import qualified Data.Vector.Unboxed as VUB
 import Data.List
 import YASDRR.DSP.FFT
@@ -24,17 +24,17 @@ import YASDRR.Math.Misc
 import Data.Complex
 
 --Process a doppler return given the pulses stored as a 2-d vector of vectors.
-processDopplerReturnV :: V.Vector ( VUB.Vector (Complex Double) ) -> 
-                                            V.Vector (VUB.Vector (Complex Double))
-processDopplerReturnV pulseList = V.map fft transposedMatrix
+processDopplerReturnV :: VB.Vector ( VUB.Vector (Complex Double) ) -> 
+                                            VB.Vector (VUB.Vector (Complex Double))
+processDopplerReturnV pulseList = VB.map fft transposedMatrix
     
-    where fft = createFftV (VUB.length $ transposedMatrix V.! 0) (-1)
+    where fft = createFftV (VUB.length $ transposedMatrix VB.! 0) (-1)
           
-          transposedMatrix = V.generate numberOfRows grabRow
+          transposedMatrix = VB.generate numberOfRows grabRow
           
           grabRow = flip getVectorMatrixRow pulseList
           
-          numberOfRows = VUB.length (pulseList V.! 0)
+          numberOfRows = VUB.length (pulseList VB.! 0)
           
 --Process a doppler return given the pulses stores as a 2-d list of list.
 processDopplerReturn :: [[Complex Double]] -> [[Complex Double]]

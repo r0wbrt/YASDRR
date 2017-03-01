@@ -135,7 +135,7 @@ processCyclicShifts string = sort $ singleOptions ++ expansionOptions -- return 
 
 encodeSignalBlock :: VB.Vector (VB.Vector (VUB.Vector (Complex Double))) ->
                             B.ByteString 
-encodeSignalBlock signalBlock = serializeBlock complexFloatSerializer $ VB.toList (VB.concatMap (VUB.convert) $ VB.concatMap id signalBlock)
+encodeSignalBlock signalBlock = serializeBlock complexFloatSerializer $ VB.toList (VB.concatMap VUB.convert $ VB.concatMap id signalBlock)
                
                
 --Each worker thread will encode and decode signal blocks in addition to 

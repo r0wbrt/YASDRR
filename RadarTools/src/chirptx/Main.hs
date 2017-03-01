@@ -20,7 +20,7 @@ import System.Console.GetOpt as GetOpt
 import System.IO
 import System.Exit
 import qualified YASDRR.SDR.ChirpRadar as Chirp
-import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed as VUB
 import Data.Complex
 import qualified Data.ByteString as B
 
@@ -51,10 +51,10 @@ main = do
               
               let normalizedChirp = Chirp.generateChirp sampleRate startFrequency endFrequency chirpLength
               let window = Opts.getChirpWindow (Opts.optChirpWindow programSettings) $ floor chirpLength 
-              let adjustedChirp = V.map (\sample -> (amplitude :+ 0.0) * sample ) normalizedChirp
-              let windowedChirp = V.zipWith (\windowCoef sample -> (windowCoef :+ 0) * sample) window adjustedChirp
+              let adjustedChirp = VUB.map (\sample -> (amplitude :+ 0.0) * sample ) normalizedChirp
+              let windowedChirp = VUB.zipWith (\windowCoef sample -> (windowCoef :+ 0) * sample) window adjustedChirp
               
-              let finalSignal = Opts.serializeOutput outputFormat $ windowedChirp V.++ V.replicate silenceLength (0.0 :+ 0.0)
+              let finalSignal = Opts.serializeOutput outputFormat $ windowedChirp VUB.++ VUB.replicate silenceLength (0.0 :+ 0.0)
               
               let writer = Opts.optOutputWriter programSettings
               

@@ -23,7 +23,7 @@ import System.Exit
 import Data.Complex
 import qualified Data.Char as DChar
 import qualified Data.ByteString as B
-import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed as VUB
 import qualified YASDRR.DSP.Windows as Windows
 import qualified YASDRR.IO.ComplexSerialization as IOComplex
 
@@ -355,13 +355,13 @@ calculateSignalLength settings = case optRiseUnit settings of
           rate = optSampleRate settings
           
           
-getChirpWindow :: SignalWindow -> Int -> V.Vector Double
+getChirpWindow :: SignalWindow -> Int -> VUB.Vector Double
 getChirpWindow window n = case window of
                           HammingWindow -> Windows.hammingWindowV n
-                          NoWindow -> V.replicate n 1.0
+                          NoWindow -> VUB.replicate n 1.0
                           
                           
-serializeOutput :: SampleFormat -> V.Vector (Complex Double) -> B.ByteString
+serializeOutput :: SampleFormat -> VUB.Vector (Complex Double) -> B.ByteString
 serializeOutput format signal = case format of
                                    SampleComplexDouble -> IOComplex.serializeBlockV IOComplex.complexDoubleSerializer signal
                                    SampleComplexFloat -> IOComplex.serializeBlockV IOComplex.complexFloatSerializer signal

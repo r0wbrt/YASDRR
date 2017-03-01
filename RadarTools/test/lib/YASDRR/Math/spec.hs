@@ -7,7 +7,8 @@ import Test.Framework.Providers.HUnit
 import Test.HUnit
 import Data.Word
 import YASDRR.Math.Misc
-import qualified Data.Vector as V
+import qualified Data.Vector as VB
+import qualified Data.Vector.Unboxed as VUB
 import Data.List
 
 tests = [ testGroup "Discrete Power of 2 function test" [
@@ -51,9 +52,9 @@ discretePowerOf2RandomCheck_prop inValue = ceiling (log (fromIntegral value) / l
 columnCheckTest_prop :: [[Int]] -> Bool
 columnCheckTest_prop dataIn = if []==dataIn then True else outputList == expectedList
     where rows = minimum $ (map (length)) dataIn
-          dataV = V.fromList $ map (V.fromList) dataIn
+          dataV = VB.fromList $ map (VUB.fromList) dataIn
           expectedList = transpose $ map (take rows) dataIn
-          outputList = V.toList $ V.map (V.toList) $ V.generate rows (\a -> getVectorMatrixRow a dataV)
+          outputList = VB.toList $ VB.map (VUB.toList) $ VB.generate rows (\a -> getVectorMatrixRow a dataV)
           
           
 main :: IO ()

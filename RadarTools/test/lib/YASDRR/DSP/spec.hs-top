@@ -12,7 +12,8 @@ import System.IO.Unsafe
 import YASDRR.DSP.FFT
 import YASDRR.DSP.Correlation
 import YASDRR.Math.Misc
-import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as VUB
+import qualified Data.Vector as VB
 import Data.List
 
 dataSize1 = [1 :+ 0]
@@ -58,17 +59,17 @@ doFftTest size iData fftComp iFftComp = assertEqual "Not all test passed" True $
           ifft = createFft size (1)
           
 fftQuickTestV :: [(Double, Double)] -> Bool
-fftQuickTestV input = all (id) $ zipWith compareComplexDouble (V.toList $ ifft $ fft $ V.fromList testInput) (testInput)
+fftQuickTestV input = all (id) $ zipWith compareComplexDouble (VUB.toList $ ifft $ fft $ VUB.fromList testInput) (testInput)
     where testInput = (map (\(a, b) -> a :+ b) input) ++ replicate ((2^(discretePowerOf2 $ length input)) - (length input)) (0 :+ 0)
           fft = createFftV (2^(discretePowerOf2 $ length input)) (-1)
           ifft = createFftV (2^(discretePowerOf2 $ length input)) (1) 
           
 doFftTestV :: Int -> [Complex Double] -> [Complex Double] -> [Complex Double] -> Assertion
 doFftTestV size iData fftComp iFftComp = assertEqual "Not all test passed" True $ fftTest && ifftTest && equalWayOneTest && equalWayTwoTest
-    where fftTest = all (id) $ zipWith compareComplexDouble (V.toList $ fft $ V.fromList iData) fftComp
-          ifftTest = all (id) $ zipWith compareComplexDouble (V.toList $ ifft $ V.fromList iData) iFftComp
-          equalWayOneTest = all (id) $ zipWith compareComplexDouble (V.toList $ ifft $ fft $ V.fromList iData) iData
-          equalWayTwoTest = all (id) $ zipWith compareComplexDouble (V.toList $ fft $ ifft $ V.fromList iData) iData
+    where fftTest = all (id) $ zipWith compareComplexDouble (VUB.toList $ fft $ VUB.fromList iData) fftComp
+          ifftTest = all (id) $ zipWith compareComplexDouble (VUB.toList $ ifft $ VUB.fromList iData) iFftComp
+          equalWayOneTest = all (id) $ zipWith compareComplexDouble (VUB.toList $ ifft $ fft $ VUB.fromList iData) iData
+          equalWayTwoTest = all (id) $ zipWith compareComplexDouble (VUB.toList $ fft $ ifft $ VUB.fromList iData) iData
           fft = createFftV size (-1)
           ifft = createFftV size (1)
 

@@ -74,7 +74,7 @@ cat("(assertEqual \"Expected output was not produced by OFDM radar processor\" (
 
 
 
-cat("(V.fromList [")
+cat("(VUB.fromList [")
 for(i in 1:LENGTH) {
     cat("(")
     cat(Re(impulse[i]))
@@ -89,9 +89,9 @@ cat("]) (")
 
 cat(SHIFT)
 
-cat(") (V.fromList ([")
+cat(") (VB.fromList ([")
 for(i in 1:LENGTH) {
-    cat("(V.fromList [")
+    cat("(VUB.fromList [")
     for(j in 1:LENGTH) {
         cat("(")
         cat(Re(return[j,i]))
@@ -168,14 +168,14 @@ cat(" processDopplerReturnFlatten ")
     cat(" (")
     if(VECTOR)
     {
-        cat("V.fromList ")
+        cat("VB.fromList ")
     }
     cat("[")
     for(i in 1:LENGTH) {
         cat("(")
         
         if(VECTOR) {
-            cat("V.fromList ")
+            cat("VUB.fromList ")
         }
         
         cat("[")

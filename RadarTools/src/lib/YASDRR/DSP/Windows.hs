@@ -17,7 +17,7 @@ Functionality to generate signal widnows.
 
 module YASDRR.DSP.Windows where
 
-import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as V
 
 
 hammingWindowV :: Int -> V.Vector Double

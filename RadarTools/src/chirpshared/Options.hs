@@ -23,7 +23,7 @@ import System.Exit
 import Data.Complex
 import qualified Data.Char as DChar
 import qualified Data.ByteString as B
-import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as V
 import qualified YASDRR.DSP.Windows as Windows
 import qualified YASDRR.IO.ComplexSerialization as IOComplex
 

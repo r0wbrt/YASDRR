@@ -17,7 +17,7 @@ number sequences.
 
 module YASDRR.DSP.Correlation (correlate, correlateV) where
 
-import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as V
 import Data.Complex
 
 -- | Vector based correlation using complex numbers.
@@ -27,7 +27,7 @@ correlateV impulse pulse
     | impulse == V.empty = pulse
     | otherwise = V.generate (V.length pulse) compress
     where compress offset = V.sum $ V.zipWith (*) 
-                                        conjImpulse (V.drop offset pulse)
+                                        conjImpulse (V.unsafeDrop offset pulse)
           conjImpulse = V.map conjugate impulse
 
           
@@ -43,8 +43,8 @@ correlate impulse signal = map loopFunction [0..(length signal - 1)]
 correlateLoop :: [Complex Double] -> V.Vector (Complex Double) -> Int 
                         -> Complex Double -> Int -> Complex Double
 correlateLoop [] _ _ acc _  = acc
-correlateLoop impulse signal signalSize acc offset 
+correlateLoop impulse signal signalSize acc offset
     | offset == signalSize = acc
     | otherwise = acc `seq` correlateLoop (tail impulse) signal signalSize 
-                    ( ( (signal V.! offset) * head impulse ) + acc)
+                    ( ( (V.unsafeIndex signal offset) * head impulse ) + acc)
                     (offset + 1)

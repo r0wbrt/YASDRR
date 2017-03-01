@@ -34,7 +34,7 @@ import Data.Complex
 import GHC.Float
 import Control.Exception
 import Data.Typeable
-import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as V
 import qualified Control.Monad as CM
 
 
@@ -89,13 +89,13 @@ serializeBlock encoder block = BL.toStrict $ BP.runPut puter
     where puter = serializationStreamProcessor encoder block
           
           
-serializeBlockV :: (a -> BP.Put) -> V.Vector a -> B.ByteString
+serializeBlockV :: (V.Unbox a) => (a -> BP.Put) -> V.Vector a -> B.ByteString
 serializeBlockV encoder block = BL.toStrict $ BP.runPut puter
                                               
     where puter = serializationStreamProcessorV encoder block
     
     
-serializationStreamProcessorV :: (a -> BP.Put) -> V.Vector a -> BP.Put
+serializationStreamProcessorV :: (V.Unbox a) => (a -> BP.Put) -> V.Vector a -> BP.Put
 serializationStreamProcessorV parser vector = do
     parser $ V.unsafeHead vector 
     CM.when (V.length vector > 1) $ serializationStreamProcessorV parser (V.tail vector) 

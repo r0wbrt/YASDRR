@@ -9,7 +9,8 @@ import System.IO
 import System.Exit
 import Data.List    
 import Data.List.Split       
-import qualified Data.Vector as V
+import qualified Data.Vector as VB
+import qualified Data.Vector.Unboxed as VUB
 import YASDRR.IO.ComplexSerialization
 import YASDRR.SDR.OFDMModulation
 
@@ -111,10 +112,10 @@ main = do
               exitFailure
               
 
-processComplexRadarReturn :: [Double] -> V.Vector (Complex Double) ->
-                                V.Vector (V.Vector (Complex Double)) ->
-                                V.Vector (V.Vector (V.Vector (Complex Double)))
-processComplexRadarReturn shifts impulse pulses = V.map (\shift -> processOfdmRadarReturnV impulse shift pulses) (V.fromList shifts)
+processComplexRadarReturn :: [Double] -> VUB.Vector (Complex Double) ->
+                                VB.Vector (VUB.Vector (Complex Double)) ->
+                                VB.Vector (VB.Vector (VUB.Vector (Complex Double)))
+processComplexRadarReturn shifts impulse pulses = VB.map (\shift -> processOfdmRadarReturnV impulse shift pulses) (VB.fromList shifts)
 
  
 --Parse the cyclic shift input string
@@ -132,9 +133,9 @@ processCyclicShifts string = sort $ singleOptions ++ expansionOptions -- return 
          
                   
 
-encodeSignalBlock :: V.Vector (V.Vector (V.Vector (Complex Double))) ->
+encodeSignalBlock :: VB.Vector (VB.Vector (VUB.Vector (Complex Double))) ->
                             B.ByteString 
-encodeSignalBlock signalBlock = serializeBlock complexFloatSerializer $ V.toList (V.concatMap id $ V.concatMap id signalBlock)
+encodeSignalBlock signalBlock = serializeBlock complexFloatSerializer $ VB.toList (VB.concatMap (VUB.convert) $ VB.concatMap id signalBlock)
                
                
 --Each worker thread will encode and decode signal blocks in addition to 
@@ -147,10 +148,10 @@ radarWorkerThread signalSize shifts sc11Input _ (impulseBlock, inSignalBlock) = 
     let decoder = if sc11Input then complexSC11Deserializer else complexFloatDeserializer
     
     --Decode the signal impulse 
-    let impulse = V.fromList $ fst $ deserializeBlock complexFloatDeserializer impulseBlock
+    let impulse = VUB.fromList $ fst $ deserializeBlock complexFloatDeserializer impulseBlock
     
     --Decode the recieved signal
-    let signal = V.fromList $ map V.fromList $ fst $ deserializeBlock (blockListDeserializer decoder signalSize) inSignalBlock
+    let signal = VB.fromList $ map VUB.fromList $ fst $ deserializeBlock (blockListDeserializer decoder signalSize) inSignalBlock
     
     --Process the signal and the impulse
     let results = processComplexRadarReturn shifts impulse signal

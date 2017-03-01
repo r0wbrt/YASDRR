@@ -4,7 +4,7 @@
 module YASDRR.SDR.ChirpRadar where 
 
 import Data.Complex
-import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as V
 
 generateChirp :: Double -> Double -> Double -> Double -> V.Vector (Complex Double)
 generateChirp sampleRate startFrequency endFrequency chirpLength = V.fromList signalList

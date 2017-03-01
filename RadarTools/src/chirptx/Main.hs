@@ -20,7 +20,7 @@ import System.Console.GetOpt as GetOpt
 import System.IO
 import System.Exit
 import qualified YASDRR.SDR.ChirpRadar as Chirp
-import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as V
 import Data.Complex
 import qualified Data.ByteString as B
 

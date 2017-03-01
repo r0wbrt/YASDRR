@@ -21,7 +21,7 @@ import Data.Complex
 import Data.Maybe
 import qualified Data.ByteString as B
 import qualified Options as Opts
-import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as VUB
 import qualified YASDRR.SDR.ChirpRadar as Chirp
 import qualified YASDRR.DSP.Correlation as Cor
 import qualified YASDRR.IO.ComplexSerialization as IOComplex
@@ -53,7 +53,7 @@ main = do
               let normalizedChirp = Chirp.generateChirp sampleRate startFrequency endFrequency chirpLength
               
               let window = Opts.getChirpWindow (Opts.optChirpWindow programSettings) $ floor chirpLength 
-              let windowedChirp = V.zipWith (\windowCoef sample -> (windowCoef :+ 0) * sample) window normalizedChirp
+              let windowedChirp = VUB.zipWith (\windowCoef sample -> (windowCoef :+ 0) * sample) window normalizedChirp
               
               let pulseTruncationLength = Opts.optSilenceTruncateLength programSettings
               let inputReader = Opts.optInputReader programSettings
@@ -77,19 +77,19 @@ main = do
               exitFailure
               
               
-compressReturn :: V.Vector (Complex Double) -> Maybe (V.Vector (Complex Double)) -> 
-                        V.Vector (Complex Double) -> V.Vector (Complex Double)
+compressReturn :: VUB.Vector (Complex Double) -> Maybe (VUB.Vector (Complex Double)) -> 
+                        VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
 compressReturn chirp pulseWindow signal = Cor.correlateV chirp windowedSignal
 
     where windowedSignal = if isNothing pulseWindow then 
                             signal 
-                                else V.zipWith (*) (fromJust pulseWindow) signal
+                                else VUB.zipWith (*) (fromJust pulseWindow) signal
                                 
                                 
-processData :: V.Vector (Complex Double) ->
-                Maybe (V.Vector (Complex Double)) -> 
-                 IO (Maybe ( V.Vector (Complex Double) ) )  -> 
-                  (V.Vector (Complex Double) -> IO ()) -> IO ()
+processData :: VUB.Vector (Complex Double) ->
+                Maybe (VUB.Vector (Complex Double)) -> 
+                 IO (Maybe ( VUB.Vector (Complex Double) ) )  -> 
+                  (VUB.Vector (Complex Double) -> IO ()) -> IO ()
 processData chirp pulseWindow signalReader signalWriter = do
     
     fileInput <- signalReader
@@ -102,7 +102,7 @@ processData chirp pulseWindow signalReader signalWriter = do
          Nothing -> return ()
          
          
-readInput :: Int -> Int -> Opts.SampleFormat -> (Int -> IO B.ByteString) -> IO (Maybe (V.Vector (Complex Double)))
+readInput :: Int -> Int -> Opts.SampleFormat -> (Int -> IO B.ByteString) -> IO (Maybe (VUB.Vector (Complex Double)))
 readInput signalLength pulseTruncationLength sampleFormat reader = do    
         
     fileBlock <- reader signalLengthBytes
@@ -118,16 +118,16 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
           signalLengthBytes = signalLength * sampleSize
           truncationLengthBytes = sampleSize * pulseTruncationLength
           
-          deserializer bString = V.fromList $ fst $ IOComplex.deserializeBlock decoder bString
+          deserializer bString = VUB.fromList $ fst $ IOComplex.deserializeBlock decoder bString
             where decoder = case sampleFormat of
                                 Opts.SampleComplexDouble -> IOComplex.complexDoubleDeserializer
                                 Opts.SampleComplexFloat -> IOComplex.complexFloatDeserializer
                                 Opts.SampleComplexSigned16 -> IOComplex.complexSigned16Deserializer 1.0
           
           
-getPulseWindow :: Opts.SignalWindow -> Int -> Maybe (V.Vector (Complex Double))
+getPulseWindow :: Opts.SignalWindow -> Int -> Maybe (VUB.Vector (Complex Double))
 getPulseWindow window n = case window of
-                          Opts.HammingWindow -> Just $ V.map (:+ 0) $ Windows.hammingWindowV n
+                          Opts.HammingWindow -> Just $ VUB.map (:+ 0) $ Windows.hammingWindowV n
                           Opts.NoWindow -> Nothing
 
 

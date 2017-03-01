@@ -18,6 +18,7 @@ module YASDRR.Math.Misc where
 
 import Data.Bits
 import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as VUB
 
 --Converts a value to the nearest value of 2 assuming the value is a power of 2.
 discretePowerOf2 :: Int -> Int
@@ -26,7 +27,7 @@ discretePowerOf2 number
     | otherwise                     = lowerValue
     where lowerValue = (finiteBitSize number - 1) - countLeadingZeros number
  
-getVectorMatrixRow :: Int -> V.Vector (V.Vector a) -> V.Vector a
-getVectorMatrixRow rowNumber = V.map (V.! rowNumber)
+getVectorMatrixRow :: (VUB.Unbox a) => Int -> V.Vector (VUB.Vector a) -> VUB.Vector a
+getVectorMatrixRow rowNumber matrix = VUB.generate (VUB.length (matrix V.! 1)) (\col -> (matrix V.! col) VUB.! rowNumber)
 
 

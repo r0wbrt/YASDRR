@@ -28,7 +28,8 @@ module YASDRR.DSP.FFT (
 
 
                             
-import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as VUB
+import qualified Data.Vector as VB
 import Data.Complex
 import Foreign.Ptr
 import Foreign.Marshal.Array 
@@ -94,11 +95,11 @@ createFft fftSize direction = fft fftSize direction
 
 -- | Sets up a vector based FFT
 {-# NOINLINE createFftV #-}
-createFftV :: Int -> Int -> (V.Vector (Complex Double) -> 
-                V.Vector (Complex Double))
-createFftV 0 _ = const V.empty
-createFftV 1 _ = V.take 1
-createFftV fftSize direction = V.fromList . fft fftSize direction . V.toList
+createFftV :: Int -> Int -> (VUB.Vector (Complex Double) -> 
+                VUB.Vector (Complex Double))
+createFftV 0 _ = const VUB.empty
+createFftV 1 _ = VUB.take 1
+createFftV fftSize direction = VUB.fromList . fft fftSize direction . VUB.toList
 
 -- | Cyclic shifts a spectrum by a given number of FFT bins.
 cyclicShift :: Double -> Int -> [Complex Double] -> [Complex Double]
@@ -107,11 +108,11 @@ cyclicShift shift size signal = zipWith (*) signal cyclicCoefs
     where cyclicCoefs = cycle [ cyclicCoef shift size i | i <- [0..(size - 1) ]]
     
 -- | Cyclic shifts a vector spectrum by a given number of FFT bins.
-cyclicShiftV :: Double -> Int -> V.Vector (Complex Double) 
-                    -> V.Vector (Complex Double)
-cyclicShiftV shift size signal = V.zipWith (*) signal cyclicCoefs
+cyclicShiftV :: Double -> Int -> VUB.Vector (Complex Double) 
+                    -> VUB.Vector (Complex Double)
+cyclicShiftV shift size signal = VUB.zipWith (*) signal cyclicCoefs
     
-    where cyclicCoefs = V.generate (V.length signal) 
+    where cyclicCoefs = VUB.generate (VUB.length signal) 
                             (\i -> cyclicCoef shift size (mod i size))
     
 
@@ -125,9 +126,9 @@ cyclicCoef shift size pos = cis $ top / bottom
           
           
 -- | Cyclic shifts a matrix by a given shift
-cyclicMutateMatrixV :: Double -> Int -> V.Vector (V.Vector (Complex Double)) -> 
-                        V.Vector (V.Vector (Complex Double))
-cyclicMutateMatrixV shift size = V.map multiplyColumn
+cyclicMutateMatrixV :: Double -> Int -> VB.Vector (VUB.Vector (Complex Double)) -> 
+                        VB.Vector (VUB.Vector (Complex Double))
+cyclicMutateMatrixV shift size = VB.map multiplyColumn
 
     --Multiply each column entry with the cyclic shift coef
     where multiplyColumn = cyclicShiftV shift size

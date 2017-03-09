@@ -33,6 +33,9 @@ library
                       YASDRR.SDR.MorseCode
                       YASDRR.SDR.ChirpRadar
                       YASDRR.DSP.Windows
+                      YASDRR.Recipes.ChirpRx
+                      YASDRR.Recipes.ChirpTx
+                      YASDRR.Recipes.SharedRecipesOptions
                       
 
 test-suite test-DSP

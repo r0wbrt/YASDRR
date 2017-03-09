@@ -27,6 +27,7 @@ import qualified YASDRR.DSP.Correlation as Cor
 import qualified YASDRR.IO.ComplexSerialization as IOComplex
 import qualified YASDRR.DSP.Windows as Windows
 
+
 main :: IO () 
 {-# ANN module "HLint: ignore Use :" #-}
 main = do
@@ -38,67 +39,51 @@ main = do
               hSetBinaryMode stdout True 
               hSetBinaryMode stdin True 
               
-              let sampleRate = Opts.optSampleRate programSettings
-              
-              let frequecyShift = Opts.optFrequencyShift programSettings
-              let startFrequency = frequecyShift +  Opts.optStartFrequency programSettings
-              let endFrequency = frequecyShift + Opts.optEndFrequency programSettings
-              
               let chirpLength = Opts.calculateSignalLength programSettings
-              let silenceLength = Opts.optSilenceLength programSettings
-              
               let outputFormat = Opts.optOutputSampleFormat programSettings
               let inputFormat = Opts.optInputSampleFormat programSettings
               
-              let normalizedChirp = Chirp.generateChirp sampleRate startFrequency endFrequency chirpLength
-              
-              let window = Opts.getChirpWindow (Opts.optChirpWindow programSettings) $ floor chirpLength 
-              let windowedChirp = VUB.zipWith (\windowCoef sample -> (windowCoef :+ 0) * sample) window normalizedChirp
+              let silenceLength = Opts.optSilenceLength programSettings
               
               let pulseTruncationLength = Opts.optSilenceTruncateLength programSettings
+              
               let inputReader = Opts.optInputReader programSettings
               let signalReader = readInput (floor chirpLength + silenceLength) pulseTruncationLength inputFormat inputReader
-              
+               
               let signalWriter signal = Opts.optOutputWriter programSettings $ Opts.serializeOutput outputFormat signal
               
-              let pulseWindow = getPulseWindow (Opts.optSignalWindow programSettings) (floor chirpLength + silenceLength - pulseTruncationLength)
+              --TODO use recipes to pull in signalProcessor
               
-              _ <- processData windowedChirp pulseWindow signalReader signalWriter
+              _ <- processData signalProcessor signalReader signalWriter
               
               _ <- Opts.optCloseOutput programSettings
-              _ <- Opts.optCloseInput programSettings
+              _ <- Opts.optCloseInput programSettings 
               
               hSetBinaryMode stdout False
               hSetBinaryMode stdin False 
               
               exitSuccess
+              
         (_, _, errors) -> do
               hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
               exitFailure
               
               
-compressReturn :: VUB.Vector (Complex Double) -> Maybe (VUB.Vector (Complex Double)) -> 
-                        VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
-compressReturn chirp pulseWindow signal = Cor.correlateV chirp windowedSignal
 
-    where windowedSignal = if isNothing pulseWindow then 
-                            signal 
-                                else VUB.zipWith (*) (fromJust pulseWindow) signal
                                 
                                 
 processData :: VUB.Vector (Complex Double) ->
-                Maybe (VUB.Vector (Complex Double)) -> 
+                VUB.Vector (Complex Double) -> 
                  IO (Maybe ( VUB.Vector (Complex Double) ) )  -> 
                   (VUB.Vector (Complex Double) -> IO ()) -> IO ()
-processData chirp pulseWindow signalReader signalWriter = do
+processData signalProcessor signalReader signalWriter = do
     
     fileInput <- signalReader
     
     case fileInput of
          Just radarReturn -> do
-             let compressedReturn = compressReturn chirp pulseWindow radarReturn
-             signalWriter compressedReturn
-             processData chirp pulseWindow signalReader signalWriter
+             signalWriter $ signalProcessor radarReturn
+             processData signalProcessor signalReader signalWriter
          Nothing -> return ()
          
          
@@ -123,11 +108,6 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
                                 Opts.SampleComplexDouble -> IOComplex.complexDoubleDeserializer
                                 Opts.SampleComplexFloat -> IOComplex.complexFloatDeserializer
                                 Opts.SampleComplexSigned16 -> IOComplex.complexSigned16Deserializer 1.0
-          
-          
-getPulseWindow :: Opts.SignalWindow -> Int -> Maybe (VUB.Vector (Complex Double))
-getPulseWindow window n = case window of
-                          Opts.HammingWindow -> Just $ VUB.map (:+ 0) $ Windows.hammingWindowV n
-                          Opts.NoWindow -> Nothing
+
 
 

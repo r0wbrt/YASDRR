@@ -21,20 +21,16 @@ import System.Console.GetOpt as GetOpt
 import System.IO
 import System.Exit
 import Data.Complex
+import YASDRR.Recipes.SharedRecipesOptions (SignalWindow (..) )
 import qualified Data.Char as DChar
 import qualified Data.ByteString as B
 import qualified Data.Vector.Unboxed as VUB
 import qualified YASDRR.DSP.Windows as Windows
 import qualified YASDRR.IO.ComplexSerialization as IOComplex
 
-data RiseUnits = RiseUnitsSeconds | RiseUnitsSamples
-
-
 data SampleFormat = SampleComplexDouble | SampleComplexFloat | SampleComplexSigned16
 
-
-data SignalWindow = HammingWindow | NoWindow
-
+data RiseUnits = RiseUnitsSeconds | RiseUnitsSamples
 
 data ProgramOptions = ProgramOptions 
  { optStartFrequency :: Double
@@ -55,8 +51,8 @@ data ProgramOptions = ProgramOptions
  , optSignalWindow :: SignalWindow
  , optCloseInput :: IO ()
  , optCloseOutput :: IO ()
- }
- 
+ } 
+
  
 startOptions :: ProgramOptions
 startOptions = ProgramOptions

@@ -18,15 +18,12 @@ import System.IO
 import System.Exit
 import System.Console.GetOpt as GetOpt
 import Data.Complex
-import Data.Maybe
 import qualified Data.ByteString as B
 import qualified Options as Opts
 import qualified Data.Vector.Unboxed as VUB
-import qualified YASDRR.SDR.ChirpRadar as Chirp
-import qualified YASDRR.DSP.Correlation as Cor
 import qualified YASDRR.IO.ComplexSerialization as IOComplex
-import qualified YASDRR.DSP.Windows as Windows
-
+import qualified YASDRR.Recipes.ChirpRx as ChirpRx
+import qualified YASDRR.Recipes.SharedRecipesOptions as SROptions
 
 main :: IO () 
 {-# ANN module "HLint: ignore Use :" #-}
@@ -52,7 +49,20 @@ main = do
                
               let signalWriter signal = Opts.optOutputWriter programSettings $ Opts.serializeOutput outputFormat signal
               
-              --TODO use recipes to pull in signalProcessor
+              let chirpRxOptions = SROptions.ChirpRadarSettings
+                    { SROptions.optStartFrequency = Opts.optStartFrequency programSettings
+                    , SROptions.optEndFrequency = Opts.optEndFrequency programSettings
+                    , SROptions.optFrequencyShift = Opts.optFrequencyShift programSettings
+                    , SROptions.optSampleRate = Opts.optSampleRate programSettings
+                    , SROptions.optRiseTime = chirpLength
+                    , SROptions.optSilenceLength = silenceLength
+                    , SROptions.optSilenceTruncateLength = pulseTruncationLength
+                    , SROptions.optAmplitude = Opts.optAmplitude programSettings
+                    , SROptions.optChirpWindow = Opts.optChirpWindow programSettings
+                    , SROptions.optSignalWindow = Opts.optSignalWindow programSettings
+                    }
+              
+              let signalProcessor = ChirpRx.main chirpRxOptions
               
               _ <- processData signalProcessor signalReader signalWriter
               
@@ -67,13 +77,10 @@ main = do
         (_, _, errors) -> do
               hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
               exitFailure
-              
-              
-
                                 
                                 
-processData :: VUB.Vector (Complex Double) ->
-                VUB.Vector (Complex Double) -> 
+processData :: (VUB.Vector (Complex Double) ->
+                VUB.Vector (Complex Double)) -> 
                  IO (Maybe ( VUB.Vector (Complex Double) ) )  -> 
                   (VUB.Vector (Complex Double) -> IO ()) -> IO ()
 processData signalProcessor signalReader signalWriter = do

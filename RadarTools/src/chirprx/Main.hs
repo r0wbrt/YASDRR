@@ -49,7 +49,7 @@ main = do
                
               let signalWriter signal = Opts.optOutputWriter programSettings $ Opts.serializeOutput outputFormat signal
               
-              let chirpRxOptions = SROptions.ChirpRadarSettings
+              let chirpSettings = SROptions.ChirpRadarSettings
                     { SROptions.optStartFrequency = Opts.optStartFrequency programSettings
                     , SROptions.optEndFrequency = Opts.optEndFrequency programSettings
                     , SROptions.optFrequencyShift = Opts.optFrequencyShift programSettings
@@ -62,7 +62,7 @@ main = do
                     , SROptions.optSignalWindow = Opts.optSignalWindow programSettings
                     }
               
-              let signalProcessor = ChirpRx.main chirpRxOptions
+              let signalProcessor = ChirpRx.main chirpSettings
               
               _ <- processData signalProcessor signalReader signalWriter
               

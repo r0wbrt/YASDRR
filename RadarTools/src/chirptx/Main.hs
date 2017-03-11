@@ -19,11 +19,9 @@ import System.Environment
 import System.Console.GetOpt as GetOpt
 import System.IO
 import System.Exit
-import qualified YASDRR.SDR.ChirpRadar as Chirp
-import qualified Data.Vector.Unboxed as VUB
-import Data.Complex
+import qualified YASDRR.Recipes.ChirpTx as ChirpTx
 import qualified Data.ByteString as B
-
+import qualified YASDRR.Recipes.SharedRecipesOptions as SROptions
 
 main :: IO ()
 {-# ANN module "HLint: ignore Use :" #-}
@@ -35,26 +33,26 @@ main = do
               
               hSetBinaryMode stdout True 
               
-              let sampleRate = Opts.optSampleRate programSettings
-              
-              let frequecyShift = Opts.optFrequencyShift programSettings
-              let startFrequency =frequecyShift +  Opts.optStartFrequency programSettings
-              let endFrequency = frequecyShift + Opts.optEndFrequency programSettings
-              
-              let amplitude = Opts.optAmplitude programSettings
-              
               let chirpLength = Opts.calculateSignalLength programSettings
               let repetitions = Opts.optRepetitions programSettings
-              let silenceLength = Opts.optSilenceLength programSettings
               
               let outputFormat = Opts.optOutputSampleFormat programSettings
               
-              let normalizedChirp = Chirp.generateChirp sampleRate startFrequency endFrequency chirpLength
-              let window = Opts.getChirpWindow (Opts.optChirpWindow programSettings) $ floor chirpLength 
-              let adjustedChirp = VUB.map (\sample -> (amplitude :+ 0.0) * sample ) normalizedChirp
-              let windowedChirp = VUB.zipWith (\windowCoef sample -> (windowCoef :+ 0) * sample) window adjustedChirp
               
-              let finalSignal = Opts.serializeOutput outputFormat $ windowedChirp VUB.++ VUB.replicate silenceLength (0.0 :+ 0.0)
+              let chirpSettings = SROptions.ChirpRadarSettings
+                    { SROptions.optStartFrequency = Opts.optStartFrequency programSettings
+                    , SROptions.optEndFrequency = Opts.optEndFrequency programSettings
+                    , SROptions.optFrequencyShift = Opts.optFrequencyShift programSettings
+                    , SROptions.optSampleRate = Opts.optSampleRate programSettings
+                    , SROptions.optRiseTime = chirpLength
+                    , SROptions.optSilenceLength = Opts.optSilenceLength programSettings
+                    , SROptions.optSilenceTruncateLength = Opts.optSilenceTruncateLength programSettings
+                    , SROptions.optAmplitude = Opts.optAmplitude programSettings
+                    , SROptions.optChirpWindow = Opts.optChirpWindow programSettings
+                    , SROptions.optSignalWindow = Opts.optSignalWindow programSettings
+                    }
+              
+              let finalSignal = Opts.serializeOutput outputFormat $ ChirpTx.main chirpSettings
               
               let writer = Opts.optOutputWriter programSettings
               

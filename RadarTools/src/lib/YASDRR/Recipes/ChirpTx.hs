@@ -42,5 +42,3 @@ main programSettings = windowedChirp VUB.++ VUB.replicate silenceLength (0.0 :+ 
           window = Opts.getChirpWindow (Opts.optChirpWindow programSettings) $ floor chirpLength 
           adjustedChirp = VUB.map (\sample -> (amplitude :+ 0.0) * sample ) normalizedChirp
           windowedChirp = VUB.zipWith (\windowCoef sample -> (windowCoef :+ 0) * sample) window adjustedChirp
-          
-          

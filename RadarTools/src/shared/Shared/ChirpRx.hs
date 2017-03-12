@@ -10,6 +10,9 @@ import qualified Shared.CommandLine as CL
 import qualified Data.Vector.Unboxed as VUB
 import qualified YASDRR.IO.ComplexSerialization as IOComplex
 import Data.Complex
+import System.IO
+import System.Exit
+
 
 processCommandInput :: GetOpt.ArgOrder (ChirpCommon.ChirpOptions -> IO ChirpCommon.ChirpOptions) -> [String] ->  (IO ChirpCommon.ChirpOptions, [String], [String])
 processCommandInput argOrder arguments = (CL.processInput ChirpCommon.startOptions actions, extra, errors)
@@ -88,4 +91,28 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
                                 CL.SampleComplexFloat -> IOComplex.complexFloatDeserializer
                                 CL.SampleComplexSigned16 -> IOComplex.complexSigned16Deserializer 1.0
 
+
+chirpRxMainIO :: [String] -> IO ()
+{-# ANN module "HLint: ignore Use :" #-}
+chirpRxMainIO arguments = do
+    case processCommandInput GetOpt.RequireOrder arguments of
+        (programSettingsIO, [], []) -> do
+                
+                programSettings <- programSettingsIO
+                
+                hSetBinaryMode stdout True 
+                hSetBinaryMode stdin True
+                
+                chirpRxMain programSettings
+                
+                _ <- ChirpCommon.optCloseOutput programSettings
+                _ <- ChirpCommon.optCloseInput programSettings
+                
+                hSetBinaryMode stdout False 
+                hSetBinaryMode stdin False 
+                
+                exitSuccess
+        (_, _, errors) -> do
+                hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
+                exitFailure
 

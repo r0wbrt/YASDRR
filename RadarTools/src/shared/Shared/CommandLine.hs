@@ -11,31 +11,61 @@ import System.IO
 
 data SampleFormat = SampleComplexDouble | SampleComplexFloat | SampleComplexSigned16
 
+data ExecutionMode = ChirpReceive | ChirpTransmit | MorseTransmit | ExecutionModeNotSet | ExecutionModeInvalid
+
 
 processInput :: a -> [a -> IO a] -> IO a
 processInput startOptions = foldl (>>=) (return startOptions) 
-          
-          
-optionAbout :: [OptDescr (a -> IO a)] -> String -> OptDescr (a -> IO a)
-optionAbout options extraInfo  = GetOpt.Option shortOptionsNames longOptionNames (GetOpt.NoArg handler) description 
+
+
+inputAbout :: (a -> IO a) -> OptDescr (a -> IO a)
+inputAbout handler  = GetOpt.Option shortOptionsNames longOptionNames (GetOpt.NoArg handler) description 
     where description = "Show about message"
           longOptionNames = ["about", "About"]
           shortOptionsNames = []
-          handler _ = do
-              prg <- getProgName
-              hPutStrLn stderr $ GetOpt.usageInfo ("Usage: "++prg++" [OPTIONS...]") options ++ extraInfo
-              exitSuccess
+          
 
+commonAboutHandler :: [OptDescr (a -> IO a)] -> Maybe String -> String  -> a -> IO a
+commonAboutHandler options mode extraInfo _ = do
+    prg <- getProgName
+    hPutStrLn stderr $ GetOpt.usageInfo ("Usage: "++prg++""++flag++" [OPTIONS...]") options ++ extraInfo
+    exitSuccess
+    where flag = case mode of
+                    Just exMode -> " --mode="++exMode++" "
+                    Nothing -> ""
+              
 
-optionHelp :: [OptDescr (a -> IO a)] -> OptDescr (a -> IO a)
-optionHelp options = GetOpt.Option shortOptionsNames longOptionNames (GetOpt.NoArg handler) description 
+inputHelp :: (a -> IO a) -> OptDescr (a -> IO a)
+inputHelp handler = GetOpt.Option shortOptionsNames longOptionNames (GetOpt.NoArg handler) description 
     where description = "Show this help message"
           longOptionNames = ["help", "Help"]
           shortOptionsNames = ['h']
-          handler _ = do
+
+
+commonHelpHandler :: [OptDescr (a -> IO a)] -> Maybe String -> a -> IO a
+commonHelpHandler options mode _ = do
               prg <- getProgName
-              hPutStrLn stderr (GetOpt.usageInfo ("Usage: "++prg++" [OPTIONS...]") options) 
+              hPutStrLn stderr (GetOpt.usageInfo ("Usage: "++prg++""++flag++" [OPTIONS...]") options) 
               exitSuccess
+    where flag = case mode of
+                    Just exMode -> " --mode="++exMode++" "
+                    Nothing -> ""
+
+inputMode :: (ExecutionMode -> a -> IO a) -> OptDescr (a -> IO a)
+inputMode recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+    where description = "Mode of operation"
+          longOptionNames = ["mode", "Mode"]
+          shortOptionsNames = []
+          argExp = "ChirpRx | ChirpTx | MorseTx"
+          handler input = recordHandler (getModeFromString input)
+
+
+getModeFromString :: String -> ExecutionMode
+getModeFromString input = case map DChar.toUpper input of
+                                                "CHIRPRX" -> ChirpReceive
+                                                "CHIRPTX" -> ChirpTransmit
+                                                "MORSETX" -> MorseTransmit
+                                                _ -> ExecutionModeInvalid
 
 
 inputAmplitude :: (Double -> a -> IO a) ->  OptDescr (a -> IO a)

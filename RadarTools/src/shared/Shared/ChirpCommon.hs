@@ -117,8 +117,8 @@ chirpRadarRxOptions = chirpOptionList ++ [
     , inputSignalWindow
     , inputFileInput
     , inputInputSignalFormat
-    , optionHelp chirpRadarRxOptions
-    , optionAbout chirpRadarRxOptions $ unlines $ ["", "This program processes a received chirp radar signal", ""] ++ commonMessage
+    , optionHelp chirpRadarRxOptions (Just "ChirpRx")
+    , optionAbout chirpRadarRxOptions (Just "ChirpRx") $ unlines $ ["", "This program processes a received chirp radar signal", ""] ++ commonMessage
     ]
     
     
@@ -126,17 +126,17 @@ chirpRadarTxOptions :: [OptDescr (ChirpOptions -> IO ChirpOptions)]
 chirpRadarTxOptions = chirpOptionList ++ [
       inputRepetitions
     , inputAmplitude
-    , optionHelp chirpRadarTxOptions
-    , optionAbout chirpRadarTxOptions $ unlines $ ["", "This program transmits a chirp radar signal", ""] ++ commonMessage
+    , optionHelp chirpRadarTxOptions (Just "ChirpTx")
+    , optionAbout chirpRadarTxOptions (Just "ChirpTx") $ unlines $ ["", "This program transmits a chirp radar signal", ""] ++ commonMessage
     ]
     
 
-optionAbout :: [OptDescr (ChirpOptions -> IO ChirpOptions)] -> String -> OptDescr (ChirpOptions -> IO ChirpOptions)
-optionAbout = CL.optionAbout
+optionAbout :: [OptDescr (ChirpOptions -> IO ChirpOptions)] -> Maybe String -> String -> OptDescr (ChirpOptions -> IO ChirpOptions)
+optionAbout options mode extra = CL.inputAbout (CL.commonAboutHandler options mode extra)
               
               
-optionHelp :: [OptDescr (ChirpOptions -> IO ChirpOptions)] -> OptDescr (ChirpOptions -> IO ChirpOptions)
-optionHelp = CL.optionHelp
+optionHelp :: [OptDescr (ChirpOptions -> IO ChirpOptions)] -> Maybe String -> OptDescr (ChirpOptions -> IO ChirpOptions)
+optionHelp options mode = CL.inputHelp (CL.commonHelpHandler options mode)
               
               
 inputStartFrequency :: OptDescr (ChirpOptions -> IO ChirpOptions)

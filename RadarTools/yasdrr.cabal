@@ -156,7 +156,7 @@ executable             chirptx
     bytestring,
     vector
     
-  hs-source-dirs:      src/chirptx, src/chirpshared
+  hs-source-dirs:      src/chirptx, src/shared
   default-language:    Haskell2010
   
   
@@ -169,5 +169,19 @@ executable             chirprx
     bytestring,
     vector
     
-  hs-source-dirs:      src/chirprx, src/chirpshared
+  hs-source-dirs:      src/chirprx, src/shared
+  default-language:    Haskell2010
+
+  
+  
+executable             yasdrr
+  main-is:             Main.hs
+  ghc-options:      -Wall -Werror -O2 -optc-O3
+  build-depends:
+    base,
+    YASDRR,
+    bytestring,
+    vector
+    
+  hs-source-dirs:      src/yasdrr
   default-language:    Haskell2010

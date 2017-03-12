@@ -16,10 +16,8 @@ need to be redistributed as a library.
 
 module Shared.ChirpCommon where
 
-import System.Environment
 import System.Console.GetOpt as GetOpt
 import System.IO
-import System.Exit
 import Data.Complex
 import YASDRR.Recipes.SharedRecipesOptions (SignalWindow (..) )
 import qualified Data.Char as DChar
@@ -27,8 +25,7 @@ import qualified Data.ByteString as B
 import qualified Data.Vector.Unboxed as VUB
 import qualified YASDRR.DSP.Windows as Windows
 import qualified YASDRR.IO.ComplexSerialization as IOComplex
-
-data SampleFormat = SampleComplexDouble | SampleComplexFloat | SampleComplexSigned16
+import qualified Shared.CommandLine as CL
 
 data RiseUnits = RiseUnitsSeconds | RiseUnitsSamples
 
@@ -39,8 +36,8 @@ data ChirpOptions = ChirpOptions
  , optSampleRate :: Double
  , optRiseTime :: Double
  , optRiseUnit :: RiseUnits
- , optInputSampleFormat :: SampleFormat
- , optOutputSampleFormat :: SampleFormat
+ , optInputSampleFormat :: CL.SampleFormat
+ , optOutputSampleFormat :: CL.SampleFormat
  , optInputReader :: Int -> IO B.ByteString
  , optOutputWriter :: B.ByteString -> IO ()
  , optSilenceLength :: Int
@@ -62,8 +59,8 @@ startOptions = ChirpOptions
  , optSampleRate = 44100
  , optRiseTime = 3
  , optRiseUnit = RiseUnitsSeconds
- , optInputSampleFormat = SampleComplexDouble
- , optOutputSampleFormat = SampleComplexDouble
+ , optInputSampleFormat = CL.SampleComplexDouble
+ , optOutputSampleFormat = CL.SampleComplexDouble
  , optInputReader = safeReader stdin
  , optOutputWriter = B.hPut stdout
  , optCloseInput = hClose stdin
@@ -135,25 +132,11 @@ chirpRadarTxOptions = chirpOptionList ++ [
     
 
 optionAbout :: [OptDescr (ChirpOptions -> IO ChirpOptions)] -> String -> OptDescr (ChirpOptions -> IO ChirpOptions)
-optionAbout options extraInfo  = GetOpt.Option shortOptionsNames longOptionNames (GetOpt.NoArg handler) description 
-    where description = "Show about message"
-          longOptionNames = ["about", "About"]
-          shortOptionsNames = []
-          handler _ = do
-              prg <- getProgName
-              hPutStrLn stderr $ GetOpt.usageInfo ("Usage: "++prg++" [OPTIONS...]") options ++ extraInfo
-              exitSuccess
+optionAbout = CL.optionAbout
               
               
 optionHelp :: [OptDescr (ChirpOptions -> IO ChirpOptions)] -> OptDescr (ChirpOptions -> IO ChirpOptions)
-optionHelp options = GetOpt.Option shortOptionsNames longOptionNames (GetOpt.NoArg handler) description 
-    where description = "Show this help message"
-          longOptionNames = ["help", "Help"]
-          shortOptionsNames = ['h']
-          handler _ = do
-              prg <- getProgName
-              hPutStrLn stderr (GetOpt.usageInfo ("Usage: "++prg++" [OPTIONS...]") options) 
-              exitSuccess
+optionHelp = CL.optionHelp
               
               
 inputStartFrequency :: OptDescr (ChirpOptions -> IO ChirpOptions)
@@ -184,12 +167,8 @@ inputFrequencyShift = GetOpt.Option shortOptionsNames longOptionNames (ReqArg ha
           
           
 inputSampleRate :: OptDescr (ChirpOptions -> IO ChirpOptions)
-inputSampleRate = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
-    where description = "Sample rate of signal"
-          longOptionNames = ["sampleRate", "SampleRate"]
-          shortOptionsNames = []
-          argExp = "frequency * samples * s^-1"
-          handler input opts = return $ opts { optSampleRate = read input::Double }
+inputSampleRate = CL.inputSampleRate handler
+    where handler input opts = return $ opts { optSampleRate = input }
           
           
 inputRiseTime :: OptDescr (ChirpOptions -> IO ChirpOptions)
@@ -211,35 +190,13 @@ inputRiseSamples = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handl
           
           
 inputInputSignalFormat :: OptDescr (ChirpOptions -> IO ChirpOptions)
-inputInputSignalFormat = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
-    where description = "Format of input signal"
-          longOptionNames = ["signalInputFormat", "SignalInputFormat"]
-          shortOptionsNames = []
-          argExp = "Double | Float | Signed16"
-          handler input opts = return $ opts 
-            { optInputSampleFormat = 
-                case map DChar.toUpper input of
-                     "DOUBLE" -> SampleComplexDouble
-                     "FLOAT" -> SampleComplexFloat
-                     "SIGNED16" -> SampleComplexSigned16
-                     _ -> error "Invalid signal format"
-            }
+inputInputSignalFormat = CL.inputInputSignalFormat handler
+    where handler input opts = return $ opts { optInputSampleFormat = input }
             
             
 inputOutputSignalFormat :: OptDescr (ChirpOptions -> IO ChirpOptions)
-inputOutputSignalFormat = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
-    where description = "Format of output signal"
-          longOptionNames = ["signalOutputFormat", "SignalOutputFormat"]
-          shortOptionsNames = []
-          argExp = "Double | Float | Signed16"
-          handler input opts = return $ opts 
-            { optOutputSampleFormat = 
-                case map DChar.toUpper input of
-                     "DOUBLE" -> SampleComplexDouble
-                     "FLOAT" -> SampleComplexFloat
-                     "SIGNED16" -> SampleComplexSigned16
-                     _ -> error "Invalid signal format"
-            }
+inputOutputSignalFormat = CL.inputOutputSignalFormat handler
+    where handler input opts = return $ opts { optOutputSampleFormat = input }
             
             
 inputSilenceLength :: OptDescr (ChirpOptions -> IO ChirpOptions)
@@ -270,12 +227,8 @@ inputRepetitions = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handl
           
           
 inputAmplitude :: OptDescr (ChirpOptions -> IO ChirpOptions)
-inputAmplitude = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
-    where description = "Amplitude of the chirp"
-          longOptionNames = ["amplitude", "Amplitude"]
-          shortOptionsNames = []
-          argExp = "amplitude"
-          handler input opts = return $ opts {optAmplitude = read input::Double}
+inputAmplitude = CL.inputAmplitude handler
+    where handler input opts = return $ opts {optAmplitude = input}
           
           
 inputChirpWindow :: OptDescr (ChirpOptions -> IO ChirpOptions)
@@ -320,14 +273,10 @@ inputFileInput = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler
               
               
 inputFileOutput :: OptDescr (ChirpOptions -> IO ChirpOptions)
-inputFileOutput = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
-    where description = "File to write output to"
-          longOptionNames = ["output", "Output"]
-          shortOptionsNames = []
-          argExp = "FILE"
-          handler input opts = do
-              handle <- openBinaryFile input WriteMode
-              return opts { optOutputWriter  = B.hPut handle, optCloseOutput = hClose handle }
+inputFileOutput = CL.inputFileOutput handler
+    where handler input opts = do
+              (writer, closer) <- CL.commonOutputFileHandler input
+              return opts { optOutputWriter  = writer, optCloseOutput = closer }
               
               
 --Avoids throwing an EOF exception
@@ -354,9 +303,9 @@ getChirpWindow window n = case window of
                           NoWindow -> VUB.replicate n 1.0
                           
                           
-serializeOutput :: SampleFormat -> VUB.Vector (Complex Double) -> B.ByteString
+serializeOutput :: CL.SampleFormat -> VUB.Vector (Complex Double) -> B.ByteString
 serializeOutput format signal = case format of
-                                   SampleComplexDouble -> IOComplex.serializeBlockV IOComplex.complexDoubleSerializer signal
-                                   SampleComplexFloat -> IOComplex.serializeBlockV IOComplex.complexFloatSerializer signal
-                                   SampleComplexSigned16 -> IOComplex.serializeBlockV (IOComplex.complexSigned16Serializer 1.0) signal
+                                   CL.SampleComplexDouble -> IOComplex.serializeBlockV IOComplex.complexDoubleSerializer signal
+                                   CL.SampleComplexFloat -> IOComplex.serializeBlockV IOComplex.complexFloatSerializer signal
+                                   CL.SampleComplexSigned16 -> IOComplex.serializeBlockV (IOComplex.complexSigned16Serializer 1.0) signal
  

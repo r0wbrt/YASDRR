@@ -66,7 +66,7 @@ processData signalProcessor signalReader signalWriter = do
          Nothing -> return ()
          
          
-readInput :: Int -> Int -> ChirpCommon.SampleFormat -> (Int -> IO B.ByteString) -> IO (Maybe (VUB.Vector (Complex Double)))
+readInput :: Int -> Int -> CL.SampleFormat -> (Int -> IO B.ByteString) -> IO (Maybe (VUB.Vector (Complex Double)))
 readInput signalLength pulseTruncationLength sampleFormat reader = do    
         
     fileBlock <- reader signalLengthBytes
@@ -75,17 +75,17 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
                     else Just $ deserializer (B.take (B.length fileBlock - truncationLengthBytes) fileBlock) 
     
     where sampleSize = case sampleFormat of
-                        ChirpCommon.SampleComplexDouble -> 16
-                        ChirpCommon.SampleComplexFloat -> 8
-                        ChirpCommon.SampleComplexSigned16 -> 4
+                        CL.SampleComplexDouble -> 16
+                        CL.SampleComplexFloat -> 8
+                        CL.SampleComplexSigned16 -> 4
           
           signalLengthBytes = signalLength * sampleSize
           truncationLengthBytes = sampleSize * pulseTruncationLength
           
           deserializer bString = VUB.fromList $ fst $ IOComplex.deserializeBlock decoder bString
             where decoder = case sampleFormat of
-                                ChirpCommon.SampleComplexDouble -> IOComplex.complexDoubleDeserializer
-                                ChirpCommon.SampleComplexFloat -> IOComplex.complexFloatDeserializer
-                                ChirpCommon.SampleComplexSigned16 -> IOComplex.complexSigned16Deserializer 1.0
+                                CL.SampleComplexDouble -> IOComplex.complexDoubleDeserializer
+                                CL.SampleComplexFloat -> IOComplex.complexFloatDeserializer
+                                CL.SampleComplexSigned16 -> IOComplex.complexSigned16Deserializer 1.0
 
 

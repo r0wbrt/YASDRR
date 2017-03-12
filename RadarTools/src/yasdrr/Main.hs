@@ -6,6 +6,7 @@ import System.Exit
 import System.Console.GetOpt as GetOpt
 import qualified Shared.CommandLine as CL
 import qualified Shared.ChirpRx as ChirpRx
+import qualified Shared.ChirpTx as ChirpTx
 import qualified Control.Monad as CM
 
 data ProgramOptions = ProgramOptions 
@@ -46,6 +47,8 @@ main = do
                      exitFailure
                  CL.ChirpReceive -> do
                      ChirpRx.chirpRxMainIO finalCommandInput
+                 CL.ChirpTransmit -> do
+                     ChirpTx.chirpTxMainIO finalCommandInput
                  _ -> do
                      hPutStrLn stderr "Execution mode supplied was invalid"
                      exitFailure

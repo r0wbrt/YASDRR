@@ -146,18 +146,6 @@ executable             morse
                       
   hs-source-dirs:      src/morse
   default-language:    Haskell2010  
-
-executable             chirptx
-  main-is:             Main.hs
-  ghc-options:      -Wall -Werror -O2 -optc-O3
-  build-depends:
-    base,
-    YASDRR,
-    bytestring,
-    vector
-    
-  hs-source-dirs:      src/chirptx, src/shared
-  default-language:    Haskell2010
   
   
 executable             yasdrr

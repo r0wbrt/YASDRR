@@ -21,6 +21,8 @@ import qualified YASDRR.Recipes.ChirpTx as ChirpTx
 import qualified Data.ByteString as B
 import qualified YASDRR.Recipes.SharedRecipesOptions as SROptions
 import qualified Shared.CommandLine as CL
+import System.IO
+import System.Exit
 
 
 processCommandInput :: GetOpt.ArgOrder (ChirpCommon.ChirpOptions -> IO ChirpCommon.ChirpOptions) -> [String] ->  (IO ChirpCommon.ChirpOptions, [String], [String])
@@ -66,3 +68,25 @@ writeOutput writer signal count = do
     
     writer signal
     writeOutput writer signal newCount 
+
+
+chirpTxMainIO :: [String] -> IO ()
+{-# ANN module "HLint: ignore Use :" #-}
+chirpTxMainIO arguments = do
+    case processCommandInput GetOpt.RequireOrder arguments of
+        (programSettingsIO, [], []) -> do
+              
+              programSettings <- programSettingsIO
+              
+              hSetBinaryMode stdout True 
+              
+              chirpTxMain programSettings
+              
+              _ <- ChirpCommon.optCloseOutput programSettings
+              
+              hSetBinaryMode stdout False 
+              
+              exitSuccess
+        (_, _, errors) -> do
+              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
+              exitFailure

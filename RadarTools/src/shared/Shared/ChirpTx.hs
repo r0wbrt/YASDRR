@@ -28,7 +28,29 @@ import System.Exit
 processCommandInput :: GetOpt.ArgOrder (ChirpCommon.ChirpOptions -> IO ChirpCommon.ChirpOptions) -> [String] ->  (IO ChirpCommon.ChirpOptions, [String], [String])
 processCommandInput argOrder arguments = (CL.processInput ChirpCommon.startOptions actions, extra, errors)
     where (actions, extra, errors) = GetOpt.getOpt argOrder ChirpCommon.chirpRadarTxOptions arguments
-    
+
+
+chirpTxMainIO :: [String] -> IO ()
+{-# ANN module "HLint: ignore Use :" #-}
+chirpTxMainIO arguments = do
+    case processCommandInput GetOpt.RequireOrder arguments of
+        (programSettingsIO, [], []) -> do
+              
+              programSettings <- programSettingsIO
+              
+              hSetBinaryMode stdout True 
+              
+              chirpTxMain programSettings
+              
+              _ <- ChirpCommon.optCloseOutput programSettings
+              
+              hSetBinaryMode stdout False 
+              
+              exitSuccess
+        (_, _, errors) -> do
+              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
+              exitFailure
+
 
 chirpTxMain :: ChirpCommon.ChirpOptions -> IO ()
 {-# ANN module "HLint: ignore Use :" #-}
@@ -57,36 +79,13 @@ chirpTxMain programSettings = do
     let writer = ChirpCommon.optOutputWriter programSettings
     
     writeOutput writer finalSignal repetitions
-    
-    
+
+
 writeOutput :: (B.ByteString -> IO ()) -> B.ByteString -> Int -> IO ()
 writeOutput _ _ 0 = return ()
-
 writeOutput writer signal count = do
     
     let newCount = if count /= -1 then count - 1 else -1
     
     writer signal
     writeOutput writer signal newCount 
-
-
-chirpTxMainIO :: [String] -> IO ()
-{-# ANN module "HLint: ignore Use :" #-}
-chirpTxMainIO arguments = do
-    case processCommandInput GetOpt.RequireOrder arguments of
-        (programSettingsIO, [], []) -> do
-              
-              programSettings <- programSettingsIO
-              
-              hSetBinaryMode stdout True 
-              
-              chirpTxMain programSettings
-              
-              _ <- ChirpCommon.optCloseOutput programSettings
-              
-              hSetBinaryMode stdout False 
-              
-              exitSuccess
-        (_, _, errors) -> do
-              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
-              exitFailure

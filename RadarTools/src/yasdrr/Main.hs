@@ -7,6 +7,7 @@ import System.Console.GetOpt as GetOpt
 import qualified Shared.CommandLine as CL
 import qualified Shared.ChirpRx as ChirpRx
 import qualified Shared.ChirpTx as ChirpTx
+import qualified Shared.MorseTx as MorseTx
 import qualified Control.Monad as CM
 
 data ProgramOptions = ProgramOptions 
@@ -49,6 +50,8 @@ main = do
                      ChirpRx.chirpRxMainIO finalCommandInput
                  CL.ChirpTransmit -> do
                      ChirpTx.chirpTxMainIO finalCommandInput
+                 CL.MorseTransmit -> do
+                     MorseTx.morseTxMainIO finalCommandInput
                  _ -> do
                      hPutStrLn stderr "Execution mode supplied was invalid"
                      exitFailure

@@ -50,7 +50,7 @@ data ChirpOptions = ChirpOptions
  , optCloseOutput :: IO ()
  } 
 
- 
+
 startOptions :: ChirpOptions
 startOptions = ChirpOptions
  { optStartFrequency = 0
@@ -61,7 +61,7 @@ startOptions = ChirpOptions
  , optRiseUnit = RiseUnitsSeconds
  , optInputSampleFormat = CL.SampleComplexDouble
  , optOutputSampleFormat = CL.SampleComplexDouble
- , optInputReader = safeReader stdin
+ , optInputReader = CL.safeReader stdin
  , optOutputWriter = B.hPut stdout
  , optCloseInput = hClose stdin
  , optCloseOutput = hClose stdout
@@ -72,8 +72,8 @@ startOptions = ChirpOptions
  , optChirpWindow = NoWindow
  , optSignalWindow = NoWindow
  }
- 
- 
+
+
 chirpOptionList :: [OptDescr (ChirpOptions -> IO ChirpOptions)]
 chirpOptionList = 
     [ inputStartFrequency
@@ -87,8 +87,8 @@ chirpOptionList =
     , inputChirpWindow
     , inputFileOutput
     ]
-    
- 
+
+
 commonMessage :: [String]
 commonMessage = 
     [ "Chirp radar is a form of pulse compression radar. Instead of transmitting"
@@ -109,8 +109,8 @@ commonMessage =
     , "The terms can be found at https://www.apache.org/licenses/LICENSE-2.0"
     , "You should also have received a NOTICE file along with this program."
     ]
-    
- 
+
+
 chirpRadarRxOptions :: [OptDescr (ChirpOptions -> IO ChirpOptions)]
 chirpRadarRxOptions = chirpOptionList ++ [
       inputSilenceTruncationLength
@@ -120,8 +120,8 @@ chirpRadarRxOptions = chirpOptionList ++ [
     , optionHelp chirpRadarRxOptions (Just "ChirpRx")
     , optionAbout chirpRadarRxOptions (Just "ChirpRx") $ unlines $ ["", "This program processes a received chirp radar signal", ""] ++ commonMessage
     ]
-    
-    
+
+
 chirpRadarTxOptions :: [OptDescr (ChirpOptions -> IO ChirpOptions)]
 chirpRadarTxOptions = chirpOptionList ++ [
       inputRepetitions
@@ -129,16 +129,16 @@ chirpRadarTxOptions = chirpOptionList ++ [
     , optionHelp chirpRadarTxOptions (Just "ChirpTx")
     , optionAbout chirpRadarTxOptions (Just "ChirpTx") $ unlines $ ["", "This program transmits a chirp radar signal", ""] ++ commonMessage
     ]
-    
+
 
 optionAbout :: [OptDescr (ChirpOptions -> IO ChirpOptions)] -> Maybe String -> String -> OptDescr (ChirpOptions -> IO ChirpOptions)
 optionAbout options mode extra = CL.inputAbout (CL.commonAboutHandler options mode extra)
-              
-              
+
+
 optionHelp :: [OptDescr (ChirpOptions -> IO ChirpOptions)] -> Maybe String -> OptDescr (ChirpOptions -> IO ChirpOptions)
 optionHelp options mode = CL.inputHelp (CL.commonHelpHandler options mode)
-              
-              
+
+
 inputStartFrequency :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputStartFrequency = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
     where description = "Start frequency of the chirp"
@@ -146,8 +146,8 @@ inputStartFrequency = GetOpt.Option shortOptionsNames longOptionNames (ReqArg ha
           shortOptionsNames = []
           argExp = "frequency * hz * s^-1"
           handler input opts = return $ opts { optStartFrequency = read input::Double }
-          
-          
+
+
 inputEndFrequency :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputEndFrequency = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
     where description = "End frequency of the chirp"
@@ -155,22 +155,18 @@ inputEndFrequency = GetOpt.Option shortOptionsNames longOptionNames (ReqArg hand
           shortOptionsNames = []
           argExp = "frequency * hz * s^-1"
           handler input opts = return $ opts { optEndFrequency = read input::Double }
-          
-          
+
+
 inputFrequencyShift :: OptDescr (ChirpOptions -> IO ChirpOptions)
-inputFrequencyShift = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
-    where description = "Frequency shift of the signal"
-          longOptionNames = ["frequencyShift", "FrequencyShift"]
-          shortOptionsNames = []
-          argExp = "frequency * hz * s^-1"
-          handler input opts = return $ opts { optFrequencyShift = read input::Double }
-          
-          
+inputFrequencyShift = CL.inputFrequencyShift handler
+    where handler input opts = return $ opts { optFrequencyShift = input }
+
+
 inputSampleRate :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputSampleRate = CL.inputSampleRate handler
     where handler input opts = return $ opts { optSampleRate = input }
-          
-          
+
+
 inputRiseTime :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputRiseTime = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
     where description = "Rise time of the chirp"
@@ -178,8 +174,8 @@ inputRiseTime = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler 
           shortOptionsNames = []
           argExp = "seconds"
           handler input opts = return $ opts { optRiseTime = read input::Double, optRiseUnit = RiseUnitsSeconds }
-          
-          
+
+
 inputRiseSamples :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputRiseSamples = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
     where description = "Rise samples of the chirp"
@@ -187,18 +183,18 @@ inputRiseSamples = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handl
           shortOptionsNames = []
           argExp = "samples"
           handler input opts = return $ opts {optRiseTime = read input::Double, optRiseUnit = RiseUnitsSamples  }
-          
-          
+
+
 inputInputSignalFormat :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputInputSignalFormat = CL.inputInputSignalFormat handler
     where handler input opts = return $ opts { optInputSampleFormat = input }
-            
-            
+
+
 inputOutputSignalFormat :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputOutputSignalFormat = CL.inputOutputSignalFormat handler
     where handler input opts = return $ opts { optOutputSampleFormat = input }
-            
-            
+
+
 inputSilenceLength :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputSilenceLength = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
     where description = "Length of silence after chirp"
@@ -206,8 +202,8 @@ inputSilenceLength = GetOpt.Option shortOptionsNames longOptionNames (ReqArg han
           shortOptionsNames = []
           argExp = "samples"
           handler input opts = return $ opts {optSilenceLength = read input::Int}
-          
-          
+
+
 inputSilenceTruncationLength :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputSilenceTruncationLength = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
     where description = "Reduce the length of a processing interval"
@@ -215,8 +211,8 @@ inputSilenceTruncationLength = GetOpt.Option shortOptionsNames longOptionNames (
           shortOptionsNames = []
           argExp = "samples"
           handler input opts = return $ opts {optSilenceTruncateLength = read input::Int}
-          
-          
+
+
 inputRepetitions :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputRepetitions = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
     where description = "Number of repetitions of the chirp"
@@ -224,13 +220,13 @@ inputRepetitions = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handl
           shortOptionsNames = []
           argExp = "count"
           handler input opts = return $ opts {optRepetitions = read input::Int}
-          
-          
+
+
 inputAmplitude :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputAmplitude = CL.inputAmplitude handler
     where handler input opts = return $ opts {optAmplitude = input}
-          
-          
+
+
 inputChirpWindow :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputChirpWindow = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
     where description = "Window to use on the chirp"
@@ -244,8 +240,8 @@ inputChirpWindow = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handl
                      "NONE" -> NoWindow
                      _ -> error "Invalid window format"
             }
-            
-            
+
+
 inputSignalWindow :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputSignalWindow = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
     where description = "Window to use on the radar pulse"
@@ -259,50 +255,38 @@ inputSignalWindow = GetOpt.Option shortOptionsNames longOptionNames (ReqArg hand
                      "NONE" -> NoWindow
                      _ -> error "Invalid window format"
             }
-            
-            
+
+
 inputFileInput :: OptDescr (ChirpOptions -> IO ChirpOptions)
-inputFileInput = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
-    where description = "File to read input from"
-          longOptionNames = ["input", "Input"]
-          shortOptionsNames = []
-          argExp = "FILE"
-          handler input opts = do
-              handle <- openBinaryFile input ReadMode
-              return opts { optInputReader  = safeReader handle, optCloseInput = hClose handle }
-              
-              
+inputFileInput = CL.inputFileInput handler
+    where handler input opts = do
+            (reader, closer) <- CL.commonInputFileHandler input
+            return opts {optInputReader = reader, optCloseInput = closer}
+
+
 inputFileOutput :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputFileOutput = CL.inputFileOutput handler
     where handler input opts = do
               (writer, closer) <- CL.commonOutputFileHandler input
               return opts { optOutputWriter  = writer, optCloseOutput = closer }
-              
-              
---Avoids throwing an EOF exception
-safeReader :: Handle -> Int -> IO B.ByteString
-safeReader h size = do
-    result <- hIsEOF h
-    if result then
-        return B.empty
-    else
-        B.hGet h size
-        
-        
+
+
+
+
 calculateSignalLength :: ChirpOptions -> Double
 calculateSignalLength settings = case optRiseUnit settings of
                                       RiseUnitsSeconds -> rate * input
                                       RiseUnitsSamples -> input
     where input = optRiseTime settings
           rate = optSampleRate settings
-          
-          
+
+
 getChirpWindow :: SignalWindow -> Int -> VUB.Vector Double
 getChirpWindow window n = case window of
                           HammingWindow -> Windows.hammingWindowV n
                           NoWindow -> VUB.replicate n 1.0
-                          
-                          
+
+
 serializeOutput :: CL.SampleFormat -> VUB.Vector (Complex Double) -> B.ByteString
 serializeOutput format signal = case format of
                                    CL.SampleComplexDouble -> IOComplex.serializeBlockV IOComplex.complexDoubleSerializer signal

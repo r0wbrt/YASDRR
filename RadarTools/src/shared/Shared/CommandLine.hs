@@ -100,6 +100,29 @@ inputOutputSignalFormat recordHandler = GetOpt.Option shortOptionsNames longOpti
           handler input = recordHandler $ getSampleFormatFromString input
 
 
+inputFileInput :: (String -> a -> IO a) -> OptDescr (a -> IO a)
+inputFileInput handler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+    where description = "File to read input from"
+          longOptionNames = ["input", "Input"]
+          shortOptionsNames = []
+          argExp = "FILE"
+
+
+commonInputFileHandler :: String -> IO ((Int -> IO B.ByteString), IO ())
+commonInputFileHandler input = do
+    handle <- openBinaryFile input ReadMode
+    return $ (safeReader handle, hClose handle)
+
+--Avoids throwing an EOF exception
+safeReader :: Handle -> Int -> IO B.ByteString
+safeReader h size = do
+    result <- hIsEOF h
+    if result then
+        return B.empty
+    else
+        B.hGet h size
+
+
 inputInputSignalFormat :: (SampleFormat -> a -> IO a) -> OptDescr (a -> IO a)
 inputInputSignalFormat recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
     where description = "Format of input signal"
@@ -125,3 +148,28 @@ inputSampleRate recordHandler = GetOpt.Option shortOptionsNames longOptionNames 
           argExp = "frequency * samples * s^-1"
           handler input = recordHandler (read input::Double)
 
+
+inputFrequencyShift :: (Double -> a -> IO a) -> OptDescr (a -> IO a)
+inputFrequencyShift recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+    where description = "Frequency shift of the signal"
+          longOptionNames = ["frequencyShift", "FrequencyShift"]
+          shortOptionsNames = []
+          argExp = "frequency * hz * s^-1"
+          handler input = recordHandler (read input::Double)
+
+
+inputMessage :: (String -> a -> IO a) -> OptDescr (a -> IO a)
+inputMessage handler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+    where description = "A text message to encode into morse code"
+          longOptionNames = ["inputMessage", "InputMessage"]
+          shortOptionsNames = []
+          argExp = "Input Message to convert"
+
+
+inputWpm :: (Int -> a -> IO a) -> OptDescr (a -> IO a)
+inputWpm recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+    where description = "The number of words to transmit per minute"
+          longOptionNames = ["wpm", "WPM"]
+          shortOptionsNames = []
+          argExp = "Words * minutes^-1"
+          handler input = recordHandler (read input::Int)

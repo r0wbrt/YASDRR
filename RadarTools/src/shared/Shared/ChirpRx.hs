@@ -18,7 +18,32 @@ processCommandInput :: GetOpt.ArgOrder (ChirpCommon.ChirpOptions -> IO ChirpComm
 processCommandInput argOrder arguments = (CL.processInput ChirpCommon.startOptions actions, extra, errors)
     where (actions, extra, errors) = GetOpt.getOpt argOrder ChirpCommon.chirpRadarRxOptions arguments 
 
-    
+
+chirpRxMainIO :: [String] -> IO ()
+{-# ANN module "HLint: ignore Use :" #-}
+chirpRxMainIO arguments = do
+    case processCommandInput GetOpt.RequireOrder arguments of
+        (programSettingsIO, [], []) -> do
+                
+                programSettings <- programSettingsIO
+                
+                hSetBinaryMode stdout True 
+                hSetBinaryMode stdin True
+                
+                chirpRxMain programSettings
+                
+                _ <- ChirpCommon.optCloseOutput programSettings
+                _ <- ChirpCommon.optCloseInput programSettings
+                
+                hSetBinaryMode stdout False 
+                hSetBinaryMode stdin False 
+                
+                exitSuccess
+        (_, _, errors) -> do
+                hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
+                exitFailure
+
+
 chirpRxMain :: ChirpCommon.ChirpOptions -> IO () 
 {-# ANN module "HLint: ignore Use :" #-}
 chirpRxMain programSettings = do
@@ -52,8 +77,8 @@ chirpRxMain programSettings = do
               let signalProcessor = ChirpRx.main chirpSettings
               
               processData signalProcessor signalReader signalWriter
-              
-              
+
+
 processData :: (VUB.Vector (Complex Double) ->
                 VUB.Vector (Complex Double)) -> 
                  IO (Maybe ( VUB.Vector (Complex Double) ) )  -> 
@@ -67,8 +92,8 @@ processData signalProcessor signalReader signalWriter = do
              signalWriter $ signalProcessor radarReturn
              processData signalProcessor signalReader signalWriter
          Nothing -> return ()
-         
-         
+
+
 readInput :: Int -> Int -> CL.SampleFormat -> (Int -> IO B.ByteString) -> IO (Maybe (VUB.Vector (Complex Double)))
 readInput signalLength pulseTruncationLength sampleFormat reader = do    
         
@@ -90,29 +115,3 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
                                 CL.SampleComplexDouble -> IOComplex.complexDoubleDeserializer
                                 CL.SampleComplexFloat -> IOComplex.complexFloatDeserializer
                                 CL.SampleComplexSigned16 -> IOComplex.complexSigned16Deserializer 1.0
-
-
-chirpRxMainIO :: [String] -> IO ()
-{-# ANN module "HLint: ignore Use :" #-}
-chirpRxMainIO arguments = do
-    case processCommandInput GetOpt.RequireOrder arguments of
-        (programSettingsIO, [], []) -> do
-                
-                programSettings <- programSettingsIO
-                
-                hSetBinaryMode stdout True 
-                hSetBinaryMode stdin True
-                
-                chirpRxMain programSettings
-                
-                _ <- ChirpCommon.optCloseOutput programSettings
-                _ <- ChirpCommon.optCloseInput programSettings
-                
-                hSetBinaryMode stdout False 
-                hSetBinaryMode stdin False 
-                
-                exitSuccess
-        (_, _, errors) -> do
-                hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
-                exitFailure
-

@@ -9,6 +9,7 @@ import qualified YASDRR.Recipes.SharedRecipesOptions as SROptions
 import qualified Shared.CommandLine as CL
 import qualified Data.Vector.Unboxed as VUB
 import qualified YASDRR.IO.ComplexSerialization as IOComplex
+import qualified Shared.IO as SIO
 import Data.Complex
 import System.IO
 import System.Exit
@@ -59,7 +60,7 @@ chirpRxMain programSettings = do
               let inputReader = ChirpCommon.optInputReader programSettings
               let signalReader = readInput (floor chirpLength + silenceLength) pulseTruncationLength inputFormat inputReader
                
-              let signalWriter signal = ChirpCommon.optOutputWriter programSettings $ ChirpCommon.serializeOutput outputFormat signal
+              let signalWriter signal = ChirpCommon.optOutputWriter programSettings $ SIO.serializeOutput outputFormat signal
               
               let chirpSettings = SROptions.ChirpRadarSettings
                     { SROptions.optStartFrequency = ChirpCommon.optStartFrequency programSettings

@@ -20,6 +20,7 @@ module YASDRR.SDR.MorseCode
           wpmToDotLength,
           generateMorseCodeFromSequence,
           partialGenerateMorseCodeFromSequence,
+          symbolLengthInSamples,
           MorseSymbol (MorseDot, MorseDash, MorseSpace)
          ) where 
 
@@ -125,9 +126,9 @@ generateMorseCodeFromSequence :: Double -> Double -> Double -> Double
 generateMorseCodeFromSequence sampleRate frequency amplitude dotLength =
     concatMap generateMorseSound
     
-    where generateMorseSound MorseDot = fst $ signalGenerator MorseDot $ floor $ dotLengthInSymbols
-          generateMorseSound MorseDash = fst $ signalGenerator MorseDash $ floor $ 3 * dotLengthInSymbols
-          generateMorseSound MorseSpace = fst $ signalGenerator MorseDash $ floor $ dotLengthInSymbols
+    where generateMorseSound MorseDot = signalGenerator MorseDot $ floor $ dotLengthInSymbols
+          generateMorseSound MorseDash = signalGenerator MorseDash $ floor $ 3 * dotLengthInSymbols
+          generateMorseSound MorseSpace = signalGenerator MorseDash $ floor $ dotLengthInSymbols
           
           signalGenerator symbol dotLengthSys = partialGenerateMorseCodeFromSequence sampleRate frequency amplitude dotLength dotLengthSys symbol 0
           
@@ -142,8 +143,8 @@ wpmToDotLength wpm = 1.2 / fromIntegral wpm
 -- | Generates part of a morse code symbol. This function is primarly intended
 -- for use in multithreaded high sampling rate applications since generateMorseCodeFromSequence
 -- buffers the entire result into memory.
-partialGenerateMorseCodeFromSequence :: Double -> Double -> Double -> Double -> Int -> MorseSymbol -> Int -> ([Complex Double], Maybe Int)
-partialGenerateMorseCodeFromSequence sampleRate frequency amplitude dotLength maxNumberOfSamples symbol startPos = (generateMorseSound symbol, retEndPos)
+partialGenerateMorseCodeFromSequence :: Double -> Double -> Double -> Double -> Int -> MorseSymbol -> Int -> [Complex Double]
+partialGenerateMorseCodeFromSequence sampleRate frequency amplitude dotLength maxNumberOfSamples symbol startPos = generateMorseSound symbol
         
     where generateMorseSound MorseDot = morseWave amplitude
           generateMorseSound MorseDash = morseWave amplitude
@@ -152,12 +153,19 @@ partialGenerateMorseCodeFromSequence sampleRate frequency amplitude dotLength ma
           morseWave 0.0 = replicate (endPos - startPos) (0.0 :+ 0.0)
           morseWave waveAmplitude = [(waveAmplitude :+ 0 ) * cis(2.0 * pi * frequency * fromIntegral i / sampleRate) | i <- [startPos .. endPos]]
           
-          dotLengthInSymbols = dotLength * sampleRate
-          retEndPos = if endPos /= floor dotLengthInSymbols then Just endPos else Nothing
-          
-          endPos = minimum [floor (dotLengthInSymbols * count), maxNumberOfSamples + startPos]
-            where count = case symbol of
-                            MorseDot -> 1
-                            MorseDash -> 3
-                            MorseSpace -> 1
-          
+          endPos = minimum [floor (symbolLengthInSamples sampleRate dotLength symbol), maxNumberOfSamples + startPos]
+
+
+
+symbolLengthInSamples :: Double -> Double -> MorseSymbol -> Double
+symbolLengthInSamples sampleRate dotLength symbol = symbolMultiplier * dotLengthInSamples
+
+    where symbolMultiplier = case symbol of
+                               MorseDot -> 1
+                               MorseDash -> 3
+                               MorseSpace -> 1
+                               
+          dotLengthInSamples = dotLength * sampleRate
+
+
+

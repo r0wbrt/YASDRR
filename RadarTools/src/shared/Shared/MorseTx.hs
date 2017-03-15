@@ -4,6 +4,9 @@ module Shared.MorseTx where
 import qualified Shared.CommandLine as CL
 import qualified Data.ByteString as B
 import qualified YASDRR.SDR.MorseCode as Morse
+import qualified YASDRR.Threading.Sharding as RMS
+import qualified Shared.IO as SIO
+import qualified Data.Vector.Unboxed as VUB
 import System.Console.GetOpt as GetOpt
 import System.IO
 import System.Exit
@@ -139,5 +142,56 @@ morseTxMain executionSettings = do
     
     let frequency = optionsDotFrequency executionSettings
     
+    let outputFormat = optionsOutputSignalFormat executionSettings
+    
+    let signalWriter = optionsOutputWriter executionSettings
+    
+    let amplitude = optionsAmplitude executionSettings
+    
+    let signalGenerator symbol pos = SIO.serializeOutput outputFormat $ VUB.fromList $ Morse.partialGenerateMorseCodeFromSequence sampleRate frequency amplitude dotLength 16384 symbol pos
+    
+    let symbolSizeCalculator symbol = floor $ Morse.symbolLengthInSamples sampleRate dotLength symbol
+    
+    let workMakerThread = morseSymbolWorkGenerator symbolSizeCalculator 16384
+    
+    let writerThread = morseSignalWriter signalWriter
+    
+    let workerThread = morseSymbolSignalGenerator signalGenerator
+    
+    shardHandle <- RMS.shardResource workMakerThread (GetNextSymbolToGenerate morseSymbols) writerThread () workerThread ()
+             
+    --Wait for workers to terminate
+    RMS.waitForCompletion shardHandle
+    
+    
     return ()
+    
+data SymbolWorkerGeneratorState = GetNextSymbolToGenerate [Morse.MorseSymbol] | GeneratingWorkForSymbol [Morse.MorseSymbol] Morse.MorseSymbol Int
+data SymbolSignalGeneratorWorkerMessage = SymbolSignalGeneratorWorkerMessage Morse.MorseSymbol Int
+
+morseSymbolWorkGenerator :: (Morse.MorseSymbol -> Int) -> Int -> SymbolWorkerGeneratorState -> IO (Maybe (SymbolSignalGeneratorWorkerMessage, SymbolWorkerGeneratorState))
+
+morseSymbolWorkGenerator _ _ (GetNextSymbolToGenerate []) = return Nothing
+
+morseSymbolWorkGenerator symbolSizeCalculator pieceSize (GetNextSymbolToGenerate (sym:symList)) = morseSymbolWorkGenerator symbolSizeCalculator pieceSize newState
+    where symSize = symbolSizeCalculator sym
+          newState = GeneratingWorkForSymbol symList sym symSize
+
+morseSymbolWorkGenerator symbolSizeCalculator pieceSize (GeneratingWorkForSymbol symList symbol remainingSamples)
+    | remainingSamples < pieceSize = return $ Just (message, GetNextSymbolToGenerate symList)
+    | otherwise = return $ Just (message, GeneratingWorkForSymbol symList symbol (remainingSamples - pieceSize))
+    where nextPos = (symbolSizeCalculator symbol - remainingSamples)
+          message = SymbolSignalGeneratorWorkerMessage symbol nextPos
+    
+
+morseSymbolSignalGenerator :: (Morse.MorseSymbol -> Int -> B.ByteString) -> () ->  SymbolSignalGeneratorWorkerMessage -> IO (Maybe (B.ByteString, ()))
+morseSymbolSignalGenerator signalGenerator _ message = return $ Just $ (signal,())
+    where signal = signalGenerator symbol nextPos
+          SymbolSignalGeneratorWorkerMessage symbol nextPos = message
+          
+          
+morseSignalWriter :: (B.ByteString -> IO ()) -> () -> B.ByteString -> IO (Maybe ())
+morseSignalWriter writer _ bSignal = do
+    _ <- writer bSignal
+    return $ Just ()
 

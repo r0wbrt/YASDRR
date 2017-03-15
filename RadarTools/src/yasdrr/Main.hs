@@ -9,6 +9,7 @@ import qualified Shared.ChirpRx as ChirpRx
 import qualified Shared.ChirpTx as ChirpTx
 import qualified Shared.MorseTx as MorseTx
 import qualified Control.Monad as CM
+import qualified Control.Concurrent as ConConc
 
 data ProgramOptions = ProgramOptions 
  { optExecutionMode :: CL.ExecutionMode 
@@ -47,8 +48,10 @@ main = do
                      hPutStrLn stderr "Mode Must be specified"
                      exitFailure
                  CL.ChirpReceive -> do
+                     ConConc.setNumCapabilities 1
                      ChirpRx.chirpRxMainIO finalCommandInput
                  CL.ChirpTransmit -> do
+                     ConConc.setNumCapabilities 1
                      ChirpTx.chirpTxMainIO finalCommandInput
                  CL.MorseTransmit -> do
                      MorseTx.morseTxMainIO finalCommandInput
@@ -59,7 +62,7 @@ main = do
                      
             exitSuccess
          (_, _, _, errors) -> do
-            hPutStrLn stderr $ unlines $ ["Invalid input supplied ~~"] ++ errors
+            hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
             exitFailure
 
 

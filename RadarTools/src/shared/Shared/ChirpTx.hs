@@ -21,6 +21,7 @@ import qualified YASDRR.Recipes.ChirpTx as ChirpTx
 import qualified Data.ByteString as B
 import qualified YASDRR.Recipes.SharedRecipesOptions as SROptions
 import qualified Shared.CommandLine as CL
+import qualified Shared.IO as SIO
 import System.IO
 import System.Exit
 
@@ -74,7 +75,7 @@ chirpTxMain programSettings = do
             , SROptions.optSignalWindow = ChirpCommon.optSignalWindow programSettings
             }
     
-    let finalSignal = ChirpCommon.serializeOutput outputFormat $ ChirpTx.main chirpSettings
+    let finalSignal = SIO.serializeOutput outputFormat $ ChirpTx.main chirpSettings
     
     let writer = ChirpCommon.optOutputWriter programSettings
     

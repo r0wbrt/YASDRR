@@ -150,7 +150,7 @@ executable             morse
   
 executable             yasdrr
   main-is:             Main.hs
-  ghc-options:      -Wall -Werror -O2 -optc-O3
+  ghc-options:      -Wall -Werror -O2 -optc-O3 -threaded
   build-depends:
     base,
     YASDRR,

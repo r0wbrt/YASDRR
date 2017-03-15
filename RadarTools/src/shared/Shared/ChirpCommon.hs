@@ -18,13 +18,11 @@ module Shared.ChirpCommon where
 
 import System.Console.GetOpt as GetOpt
 import System.IO
-import Data.Complex
 import YASDRR.Recipes.SharedRecipesOptions (SignalWindow (..) )
 import qualified Data.Char as DChar
 import qualified Data.ByteString as B
 import qualified Data.Vector.Unboxed as VUB
 import qualified YASDRR.DSP.Windows as Windows
-import qualified YASDRR.IO.ComplexSerialization as IOComplex
 import qualified Shared.CommandLine as CL
 
 data RiseUnits = RiseUnitsSeconds | RiseUnitsSamples
@@ -287,9 +285,5 @@ getChirpWindow window n = case window of
                           NoWindow -> VUB.replicate n 1.0
 
 
-serializeOutput :: CL.SampleFormat -> VUB.Vector (Complex Double) -> B.ByteString
-serializeOutput format signal = case format of
-                                   CL.SampleComplexDouble -> IOComplex.serializeBlockV IOComplex.complexDoubleSerializer signal
-                                   CL.SampleComplexFloat -> IOComplex.serializeBlockV IOComplex.complexFloatSerializer signal
-                                   CL.SampleComplexSigned16 -> IOComplex.serializeBlockV (IOComplex.complexSigned16Serializer 1.0) signal
+
  

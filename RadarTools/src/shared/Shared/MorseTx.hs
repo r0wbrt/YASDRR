@@ -6,7 +6,6 @@ import qualified Data.ByteString as B
 import qualified YASDRR.SDR.MorseCode as Morse
 import qualified YASDRR.Threading.Sharding as RMS
 import qualified Shared.IO as SIO
-import qualified Data.Vector.Unboxed as VUB
 import System.Console.GetOpt as GetOpt
 import System.IO
 import System.Exit
@@ -148,11 +147,11 @@ morseTxMain executionSettings = do
     
     let amplitude = optionsAmplitude executionSettings
     
-    let signalGenerator symbol pos = SIO.serializeOutput outputFormat $ VUB.fromList $ Morse.partialGenerateMorseCodeFromSequence sampleRate frequency amplitude dotLength 16384 symbol pos
+    let signalGenerator symbol pos = SIO.serializeOutput outputFormat $ Morse.partialGenerateMorseCodeFromSequence sampleRate frequency amplitude dotLength 4096 symbol pos
     
     let symbolSizeCalculator symbol = floor $ Morse.symbolLengthInSamples sampleRate dotLength symbol
     
-    let workMakerThread = morseSymbolWorkGenerator symbolSizeCalculator 16384
+    let workMakerThread = morseSymbolWorkGenerator symbolSizeCalculator 4096
     
     let writerThread = morseSignalWriter signalWriter
     

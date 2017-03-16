@@ -161,13 +161,13 @@ main = do
              
              let morseSignalGenerator = Morse.generateMorseCodeFromSequence sampleRate frequency (1.0::Double) dotLength
              
-             let binarySignalEncodeder = if optionsEncodeAsSC11 executionSettings then
+             let binarySignalEncoder = if optionsEncodeAsSC11 executionSettings then
                                             ComplexSerialization.serializeBlock ComplexSerialization.complexSC11Serializer
                                                 else ComplexSerialization.serializeBlock ComplexSerialization.complexFloatSerializer
                                                 
              let writer = optionsOutputWriter executionSettings
                  
-             _ <- mapM (writeMorseSymbol binarySignalEncodeder morseSignalGenerator writer) morseSymbols
+             _ <- mapM (writeMorseSymbol binarySignalEncoder morseSignalGenerator writer) morseSymbols
                 
              hSetBinaryMode stdout False
              

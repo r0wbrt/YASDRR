@@ -122,7 +122,7 @@ defaultNumberOfThreads = getNumCapabilities
 defaultQueueSize :: IO Int
 defaultQueueSize = do
     n <- defaultNumberOfThreads
-    return (n * 512)
+    return (n * 16)
 
     
 -- | This function blocks until all threads have quit.

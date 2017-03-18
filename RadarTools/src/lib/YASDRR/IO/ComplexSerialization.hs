@@ -22,8 +22,9 @@ module YASDRR.IO.ComplexSerialization (
             deserializeBlock, serializeBlock, blockListDeserializer,
             blockListSerializer, complexFloatSerializer,
             complexFloatDeserializer, complexSC11Deserializer,
-            complexSC11Serializer, complexSigned16Serializer,
-            complexDoubleSerializer, serializeBlockV,
+            complexSC11Serializer, complexSigned16Serializer, 
+            complexSigned16SerializerOne, complexDoubleSerializer, 
+            serializeBlockV,
             complexDoubleDeserializer, complexSigned16Deserializer) where
 
 import qualified Data.Binary.Get as BG
@@ -126,10 +127,18 @@ complexDoubleSerializer (real :+ imaginary) = do
     
 complexSigned16Serializer :: Double -> Complex Double -> BP.Put
 complexSigned16Serializer base (real :+ imaginary) = do
-    BP.putInt16le $ convertNumber real
-    BP.putInt16le $ convertNumber imaginary
+    BP.putInt16host $ convertNumber real
+    BP.putInt16host $ convertNumber imaginary
     
     where convertNumber number = floor $ signum number * abs (minimum [ 32767.0 * number / base, 32767.0])
+          
+          
+complexSigned16SerializerOne :: Complex Double -> BP.Put
+complexSigned16SerializerOne (real :+ imaginary) = do
+    BP.putInt16host $ convertNumber real
+    BP.putInt16host $ convertNumber imaginary
+    
+    where convertNumber number = floor $ signum number * abs (minimum [ 32767.0 * number, 32767.0])
     
     
 complexFloatSerializer :: Complex Double -> BP.Put

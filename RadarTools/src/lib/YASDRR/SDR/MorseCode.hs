@@ -18,18 +18,13 @@ Functionality used to generate morse code signals for identification purposes.
 module YASDRR.SDR.MorseCode
         ( convertStringToMorseCode, 
           wpmToDotLength,
-          generateMorseCodeFromSequence,
-          partialGenerateMorseCodeFromSequence,
-          symbolLengthInSamples,
           MorseSymbol (MorseDot, MorseDash, MorseSpace)
          ) where 
 
 
 import qualified Data.HashMap as Map
-import Data.Complex
 import Data.Maybe
 import qualified Data.Char as DChar
-import qualified Data.Vector.Unboxed as VUB
 
 
 data MorseSymbol = MorseDot | MorseDash | MorseSpace deriving (Show,Eq)
@@ -117,59 +112,10 @@ convertStringToMorseCode input =
           letterToMorse c = 
               fromJust (Map.lookup (DChar.toUpper c) morseMap)
                 ++ [MorseSpace, MorseSpace, MorseSpace]
-    
-    
--- | Generates the morse code output from a morse code string. Note, frequency 
--- is passed in as Hz/s. Dot length is passed in as a fraction of the sampling 
--- rate. 
-generateMorseCodeFromSequence :: Double -> Double -> Double -> Double
-                                        -> [MorseSymbol] -> VUB.Vector (Complex Double)
-generateMorseCodeFromSequence sampleRate frequency amplitude dotLength symbols =
-    VUB.concat $ map generateMorseSound symbols
-    
-    where generateMorseSound MorseDot = signalGenerator MorseDot $ floor $ dotLengthInSymbols
-          generateMorseSound MorseDash = signalGenerator MorseDash $ floor $ 3 * dotLengthInSymbols
-          generateMorseSound MorseSpace = signalGenerator MorseDash $ floor $ dotLengthInSymbols
-          
-          signalGenerator symbol dotLengthSys = partialGenerateMorseCodeFromSequence sampleRate frequency amplitude dotLength dotLengthSys symbol 0
-          
-          dotLengthInSymbols = dotLength * sampleRate
           
           
 -- | Converts wpm to dot length as a fraction of a second.
 wpmToDotLength :: Int -> Double
 wpmToDotLength wpm = 1.2 / fromIntegral wpm
-
-
--- | Generates part of a morse code symbol. This function is primarly intended
--- for use in multithreaded high sampling rate applications since generateMorseCodeFromSequence
--- buffers the entire result into memory.
-partialGenerateMorseCodeFromSequence :: Double -> Double -> Double -> Double -> Int -> MorseSymbol -> Int -> VUB.Vector (Complex Double)
-partialGenerateMorseCodeFromSequence sampleRate frequency amplitude dotLength maxNumberOfSamples symbol startPos = generateMorseSound symbol
-        
-    where generateMorseSound MorseDot = morseWave amplitude
-          generateMorseSound MorseDash = morseWave amplitude
-          generateMorseSound MorseSpace = morseWave 0.0
-          
-          morseWave 0.0 = VUB.replicate (endPos - startPos) (0.0 :+ 0.0)
-          morseWave waveAmplitude = VUB.generate (endPos - startPos) (generator waveAmplitude)
-          
-          generator waveAmplitude pos = (waveAmplitude :+ 0 ) * cis(2.0 * pi * frequency * fromIntegral (pos + startPos) / sampleRate)
-            
-          
-          endPos = minimum [floor (symbolLengthInSamples sampleRate dotLength symbol), maxNumberOfSamples + startPos]
-
-
-
-symbolLengthInSamples :: Double -> Double -> MorseSymbol -> Double
-symbolLengthInSamples sampleRate dotLength symbol = symbolMultiplier * dotLengthInSamples
-
-    where symbolMultiplier = case symbol of
-                               MorseDot -> 1
-                               MorseDash -> 3
-                               MorseSpace -> 1
-                               
-          dotLengthInSamples = dotLength * sampleRate
-
 
 

@@ -325,7 +325,7 @@ shardWorkerThread worker state inChannel outChannel = do
                       return ()
                       
                   Just (output, newState) -> do
-                      CCCUB.writeChan outChannel $ MessageData tag output
+                      output `seq` CCCUB.writeChan outChannel $ MessageData tag output
                       shardWorkerThread worker newState inChannel outChannel
          
          --Invalid message recieved.

@@ -2,13 +2,14 @@
 module Shared.MorseTx where
 
 import qualified Shared.CommandLine as CL
-import qualified Data.ByteString as B
 import qualified YASDRR.SDR.MorseCode as Morse
-import qualified YASDRR.Threading.Sharding as RMS
-import qualified Shared.IO as SIO
+import qualified YASDRR.IO.ComplexSerialization as CS
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.Binary.Put as BP
 import System.Console.GetOpt as GetOpt
 import System.IO
 import System.Exit
+import Data.Complex
 
 
 data MorseOptions = 
@@ -16,7 +17,7 @@ data MorseOptions =
                  , optionsSampleRate :: Double
                  , optionsWordsPerMinute :: Int
                  , optionsDotFrequency :: Double
-                 , optionsOutputWriter :: B.ByteString -> IO ()
+                 , optionsOutputWriter :: BL.ByteString -> IO ()
                  , optionsOutputSignalFormat :: CL.SampleFormat
                  , optionsOutputCloser :: IO ()
                  , optionsAmplitude :: Double
@@ -30,7 +31,7 @@ startOptions =
                  , optionsSampleRate = 44000::Double
                  , optionsWordsPerMinute = 20::Int
                  , optionsDotFrequency = 0::Double
-                 , optionsOutputWriter = B.hPut stdout
+                 , optionsOutputWriter = BL.hPut stdout
                  , optionsOutputSignalFormat = CL.SampleComplexDouble
                  , optionsOutputCloser = hClose stdout
                  , optionsAmplitude = 1.0
@@ -52,8 +53,8 @@ morseTxOptions =
 
 inputFileOutput :: String -> MorseOptions -> IO MorseOptions
 inputFileOutput input opt = do
-    (writer, closer) <- CL.commonOutputFileHandler input
-    return opt {optionsOutputCloser = closer, optionsOutputWriter = writer}
+    h <- openBinaryFile input WriteMode
+    return opt {optionsOutputCloser = hClose h, optionsOutputWriter = BL.hPut h}
 
 -- | Description message written to the command line describing how this program works.
 descriptionMessage :: String
@@ -141,56 +142,31 @@ morseTxMain executionSettings = do
     
     let frequency = optionsDotFrequency executionSettings
     
-    let outputFormat = optionsOutputSignalFormat executionSettings
+    let outputFormat = case optionsOutputSignalFormat executionSettings of
+                        CL.SampleComplexDouble -> CS.complexDoubleSerializer
+                        CL.SampleComplexFloat  -> CS.complexFloatSerializer
+                        CL.SampleComplexSigned16 -> CS.complexSigned16SerializerOne
     
     let signalWriter = optionsOutputWriter executionSettings
     
     let amplitude = optionsAmplitude executionSettings
     
-    let signalGenerator symbol pos = SIO.serializeOutput outputFormat $ Morse.partialGenerateMorseCodeFromSequence sampleRate frequency amplitude dotLength 4096 symbol pos
-    
-    let symbolSizeCalculator symbol = floor $ Morse.symbolLengthInSamples sampleRate dotLength symbol
-    
-    let workMakerThread = morseSymbolWorkGenerator symbolSizeCalculator 4096
-    
-    let writerThread = morseSignalWriter signalWriter
-    
-    let workerThread = morseSymbolSignalGenerator signalGenerator
-    
-    shardHandle <- RMS.shardResource workMakerThread (GetNextSymbolToGenerate morseSymbols) writerThread () workerThread ()
-             
-    --Wait for workers to terminate
-    RMS.waitForCompletion shardHandle
-    
-    
-    return ()
-    
-data SymbolWorkerGeneratorState = GetNextSymbolToGenerate [Morse.MorseSymbol] | GeneratingWorkForSymbol [Morse.MorseSymbol] Morse.MorseSymbol Int
-data SymbolSignalGeneratorWorkerMessage = SymbolSignalGeneratorWorkerMessage Morse.MorseSymbol Int
+    signalWriter $ BP.runPut $ generateMorseStream outputFormat sampleRate dotLength frequency amplitude morseSymbols
 
-morseSymbolWorkGenerator :: (Morse.MorseSymbol -> Int) -> Int -> SymbolWorkerGeneratorState -> IO (Maybe (SymbolSignalGeneratorWorkerMessage, SymbolWorkerGeneratorState))
 
-morseSymbolWorkGenerator _ _ (GetNextSymbolToGenerate []) = return Nothing
+generateMorseStream :: (Complex Double -> BP.Put) -> Double -> Double -> Double -> Double -> ([Morse.MorseSymbol] -> BP.Put)
+generateMorseStream serializer sampleRate dotLength frequency amplitude = mapM_ (generateMorseSymbol serializer sampleRate dotLength frequency amplitude)
 
-morseSymbolWorkGenerator symbolSizeCalculator pieceSize (GetNextSymbolToGenerate (sym:symList)) = morseSymbolWorkGenerator symbolSizeCalculator pieceSize newState
-    where symSize = symbolSizeCalculator sym
-          newState = GeneratingWorkForSymbol symList sym symSize
 
-morseSymbolWorkGenerator symbolSizeCalculator pieceSize (GeneratingWorkForSymbol symList symbol remainingSamples)
-    | remainingSamples < pieceSize = return $ Just (message, GetNextSymbolToGenerate symList)
-    | otherwise = return $ Just (message, GeneratingWorkForSymbol symList symbol (remainingSamples - pieceSize))
-    where nextPos = (symbolSizeCalculator symbol - remainingSamples)
-          message = SymbolSignalGeneratorWorkerMessage symbol nextPos
-    
+generateMorseSymbol :: (Complex Double -> BP.Put) -> Double -> Double -> Double -> Double -> Morse.MorseSymbol -> BP.Put
+generateMorseSymbol serializer sampleRate dotLength frequency amplitude symbol = mapM_ (\pos -> serializer $ generateMorseSample sampleRate frequency symAmplitude pos) [1 .. symLength]
+    where symLength = floor $ sampleRate * dotLength * case symbol of
+                                            Morse.MorseDot -> 1
+                                            Morse.MorseDash -> 3
+                                            Morse.MorseSpace -> 1
+          symAmplitude = if symbol == Morse.MorseSpace then 0.0 else amplitude
 
-morseSymbolSignalGenerator :: (Morse.MorseSymbol -> Int -> B.ByteString) -> () ->  SymbolSignalGeneratorWorkerMessage -> IO (Maybe (B.ByteString, ()))
-morseSymbolSignalGenerator signalGenerator _ message = return $ Just $ (signal,())
-    where signal = signalGenerator symbol nextPos
-          SymbolSignalGeneratorWorkerMessage symbol nextPos = message
-          
-          
-morseSignalWriter :: (B.ByteString -> IO ()) -> () -> B.ByteString -> IO (Maybe ())
-morseSignalWriter writer _ bSignal = do
-    _ <- writer bSignal
-    return $ Just ()
+
+generateMorseSample :: Double -> Double -> Double -> Int -> Complex Double
+generateMorseSample sampleRate frequency amplitude pos = (amplitude :+ 0 ) * cis(2.0 * pi * frequency * fromIntegral pos / sampleRate)
 

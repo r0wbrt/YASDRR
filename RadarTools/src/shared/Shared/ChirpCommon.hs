@@ -269,8 +269,6 @@ inputFileOutput = CL.inputFileOutput handler
               return opts { optOutputWriter  = writer, optCloseOutput = closer }
 
 
-
-
 calculateSignalLength :: ChirpOptions -> Double
 calculateSignalLength settings = case optRiseUnit settings of
                                       RiseUnitsSeconds -> rate * input

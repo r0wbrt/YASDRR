@@ -3,12 +3,10 @@ module Shared.ChirpRx where
 
 import qualified Shared.ChirpCommon as ChirpCommon
 import System.Console.GetOpt as GetOpt
-import qualified YASDRR.Recipes.ChirpRx as ChirpRx
+import qualified YASDRR.SDR.ChirpRadar as Chirp
 import qualified Data.ByteString as B
-import qualified YASDRR.Recipes.SharedRecipesOptions as SROptions
 import qualified Shared.CommandLine as CL
 import qualified Data.Vector.Unboxed as VUB
-import qualified YASDRR.IO.ComplexSerialization as IOComplex
 import qualified Shared.IO as SIO
 import Data.Complex
 import System.IO
@@ -62,20 +60,20 @@ chirpRxMain programSettings = do
                
               let signalWriter signal = ChirpCommon.optOutputWriter programSettings $ SIO.serializeOutput outputFormat signal
               
-              let chirpSettings = SROptions.ChirpRadarSettings
-                    { SROptions.optStartFrequency = ChirpCommon.optStartFrequency programSettings
-                    , SROptions.optEndFrequency = ChirpCommon.optEndFrequency programSettings
-                    , SROptions.optFrequencyShift = ChirpCommon.optFrequencyShift programSettings
-                    , SROptions.optSampleRate = ChirpCommon.optSampleRate programSettings
-                    , SROptions.optRiseTime = chirpLength
-                    , SROptions.optSilenceLength = silenceLength
-                    , SROptions.optSilenceTruncateLength = pulseTruncationLength
-                    , SROptions.optAmplitude = ChirpCommon.optAmplitude programSettings
-                    , SROptions.optChirpWindow = ChirpCommon.optChirpWindow programSettings
-                    , SROptions.optSignalWindow = ChirpCommon.optSignalWindow programSettings
+              let chirpSettings = Chirp.ChirpRadarSettings
+                    { Chirp.optStartFrequency = ChirpCommon.optStartFrequency programSettings
+                    , Chirp.optEndFrequency = ChirpCommon.optEndFrequency programSettings
+                    , Chirp.optFrequencyShift = ChirpCommon.optFrequencyShift programSettings
+                    , Chirp.optSampleRate = ChirpCommon.optSampleRate programSettings
+                    , Chirp.optRiseTime = chirpLength
+                    , Chirp.optSilenceLength = silenceLength
+                    , Chirp.optSilenceTruncateLength = pulseTruncationLength
+                    , Chirp.optAmplitude = ChirpCommon.optAmplitude programSettings
+                    , Chirp.optChirpWindow = ChirpCommon.optChirpWindow programSettings
+                    , Chirp.optSignalWindow = ChirpCommon.optSignalWindow programSettings
                     }
               
-              let signalProcessor = ChirpRx.main chirpSettings
+              let signalProcessor = Chirp.chirpRx chirpSettings
               
               processData signalProcessor signalReader signalWriter
 
@@ -111,8 +109,8 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
           signalLengthBytes = signalLength * sampleSize
           truncationLengthBytes = sampleSize * pulseTruncationLength
           
-          deserializer bString = VUB.fromList $ fst $ IOComplex.deserializeBlock decoder bString
+          deserializer bString = VUB.fromList $ fst $ SIO.deserializeBlock decoder bString
             where decoder = case sampleFormat of
-                                CL.SampleComplexDouble -> IOComplex.complexDoubleDeserializer
-                                CL.SampleComplexFloat -> IOComplex.complexFloatDeserializer
-                                CL.SampleComplexSigned16 -> IOComplex.complexSigned16Deserializer 1.0
+                                CL.SampleComplexDouble -> SIO.complexDoubleDeserializer
+                                CL.SampleComplexFloat -> SIO.complexFloatDeserializer
+                                CL.SampleComplexSigned16 -> SIO.complexSigned16Deserializer 1.0

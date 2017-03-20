@@ -3,7 +3,7 @@ module Shared.MorseTx where
 
 import qualified Shared.CommandLine as CL
 import qualified YASDRR.SDR.MorseCode as Morse
-import qualified YASDRR.IO.ComplexSerialization as CS
+import qualified Shared.IO as SIO
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Binary.Put as BP
 import System.Console.GetOpt as GetOpt
@@ -143,9 +143,9 @@ morseTxMain executionSettings = do
     let frequency = optionsDotFrequency executionSettings
     
     let outputFormat = case optionsOutputSignalFormat executionSettings of
-                        CL.SampleComplexDouble -> CS.complexDoubleSerializer
-                        CL.SampleComplexFloat  -> CS.complexFloatSerializer
-                        CL.SampleComplexSigned16 -> CS.complexSigned16SerializerOne
+                        CL.SampleComplexDouble -> SIO.complexDoubleSerializer
+                        CL.SampleComplexFloat  -> SIO.complexFloatSerializer
+                        CL.SampleComplexSigned16 -> SIO.complexSigned16SerializerOne
     
     let signalWriter = optionsOutputWriter executionSettings
     

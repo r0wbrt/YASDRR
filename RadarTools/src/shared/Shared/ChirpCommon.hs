@@ -18,7 +18,7 @@ module Shared.ChirpCommon where
 
 import System.Console.GetOpt as GetOpt
 import System.IO
-import YASDRR.Recipes.SharedRecipesOptions (SignalWindow (..) )
+import YASDRR.SDR.ChirpRadar (SignalWindow (..) )
 import qualified Data.Char as DChar
 import qualified Data.ByteString as B
 import qualified Data.Vector.Unboxed as VUB

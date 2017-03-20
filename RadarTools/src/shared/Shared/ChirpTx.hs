@@ -17,9 +17,8 @@ module Shared.ChirpTx where
 
 import qualified Shared.ChirpCommon as ChirpCommon
 import System.Console.GetOpt as GetOpt
-import qualified YASDRR.Recipes.ChirpTx as ChirpTx
+import qualified YASDRR.SDR.ChirpRadar as Chirp
 import qualified Data.ByteString as B
-import qualified YASDRR.Recipes.SharedRecipesOptions as SROptions
 import qualified Shared.CommandLine as CL
 import qualified Shared.IO as SIO
 import System.IO
@@ -62,20 +61,20 @@ chirpTxMain programSettings = do
     
     let outputFormat = ChirpCommon.optOutputSampleFormat programSettings
     
-    let chirpSettings = SROptions.ChirpRadarSettings
-            { SROptions.optStartFrequency = ChirpCommon.optStartFrequency programSettings
-            , SROptions.optEndFrequency = ChirpCommon.optEndFrequency programSettings
-            , SROptions.optFrequencyShift = ChirpCommon.optFrequencyShift programSettings
-            , SROptions.optSampleRate = ChirpCommon.optSampleRate programSettings
-            , SROptions.optRiseTime = chirpLength
-            , SROptions.optSilenceLength = ChirpCommon.optSilenceLength programSettings
-            , SROptions.optSilenceTruncateLength = ChirpCommon.optSilenceTruncateLength programSettings
-            , SROptions.optAmplitude = ChirpCommon.optAmplitude programSettings
-            , SROptions.optChirpWindow = ChirpCommon.optChirpWindow programSettings
-            , SROptions.optSignalWindow = ChirpCommon.optSignalWindow programSettings
+    let chirpSettings = Chirp.ChirpRadarSettings
+            { Chirp.optStartFrequency = ChirpCommon.optStartFrequency programSettings
+            , Chirp.optEndFrequency = ChirpCommon.optEndFrequency programSettings
+            , Chirp.optFrequencyShift = ChirpCommon.optFrequencyShift programSettings
+            , Chirp.optSampleRate = ChirpCommon.optSampleRate programSettings
+            , Chirp.optRiseTime = chirpLength
+            , Chirp.optSilenceLength = ChirpCommon.optSilenceLength programSettings
+            , Chirp.optSilenceTruncateLength = ChirpCommon.optSilenceTruncateLength programSettings
+            , Chirp.optAmplitude = ChirpCommon.optAmplitude programSettings
+            , Chirp.optChirpWindow = ChirpCommon.optChirpWindow programSettings
+            , Chirp.optSignalWindow = ChirpCommon.optSignalWindow programSettings
             }
     
-    let finalSignal = SIO.serializeOutput outputFormat $ ChirpTx.main chirpSettings
+    let finalSignal = SIO.serializeOutput outputFormat $ Chirp.chirpTx chirpSettings
     
     let writer = ChirpCommon.optOutputWriter programSettings
     

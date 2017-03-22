@@ -102,7 +102,7 @@ inputInputSignalFormat = inputSignalFormatHandler description
 
 
 inputSignalFormatHandler :: String -> (SampleFormat -> a -> IO a) -> OptDescr (a -> IO a)
-inputInputSignalFormat description recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+inputSignalFormatHandler description recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
     where longOptionNames = ["signalInputFormat", "SignalInputFormat"]
           shortOptionsNames = []
           argExp = "Double | Float | Signed16"

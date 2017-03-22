@@ -31,7 +31,7 @@ serializeOutput :: CL.SampleFormat -> VUB.Vector (Complex Double) -> B.ByteStrin
 serializeOutput format signal = case format of
                                    CL.SampleComplexDouble -> serializeBlockV complexDoubleSerializer signal
                                    CL.SampleComplexFloat -> serializeBlockV complexFloatSerializer signal
-                                   CL.SampleComplexSigned16 -> serializeBlockV (complexSigned16SerializerOne) signal 
+                                   CL.SampleComplexSigned16 -> serializeBlockV complexSigned16SerializerOne signal 
 
 
 

@@ -20,7 +20,7 @@ processCommandInput argOrder arguments = (CL.processInput ChirpCommon.startOptio
 
 chirpRxMainIO :: [String] -> IO ()
 {-# ANN module "HLint: ignore Use :" #-}
-chirpRxMainIO arguments = do
+chirpRxMainIO arguments =
     case processCommandInput GetOpt.RequireOrder arguments of
         (programSettingsIO, [], []) -> do
                 

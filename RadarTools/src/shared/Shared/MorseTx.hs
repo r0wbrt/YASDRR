@@ -40,7 +40,7 @@ startOptions =
 morseTxOptions :: [OptDescr (MorseOptions -> IO MorseOptions)]
 morseTxOptions = 
     [ CL.inputFileInput (\input opt -> return opt { optionsInput = openFile input ReadMode >>= hGetContents  })
-    , CL.inputMessage (\input opt -> return opt { optionsInput = (return input)})
+    , CL.inputMessage (\input opt -> return opt { optionsInput = return input})
     , CL.inputFileOutput inputFileOutput
     , CL.inputSampleRate (\input opt -> return opt { optionsSampleRate = input})
     , CL.inputFrequencyShift (\input opt -> return opt {optionsDotFrequency = input})
@@ -108,7 +108,8 @@ processCommandInput argOrder arguments = (CL.processInput startOptions actions, 
 
 
 morseTxMainIO :: [String] -> IO ()
-morseTxMainIO commandLineOptions = do
+{-# ANN module "HLint: ignore Use :" #-}
+morseTxMainIO commandLineOptions = 
     case processCommandInput GetOpt.RequireOrder commandLineOptions of
               
          -- Normal Execution Path
@@ -159,7 +160,7 @@ generateMorseStream serializer sampleRate dotLength frequency amplitude = mapM_ 
 
 
 generateMorseSymbol :: (Complex Double -> BP.Put) -> Double -> Double -> Double -> Double -> Morse.MorseSymbol -> BP.Put
-generateMorseSymbol serializer sampleRate dotLength frequency amplitude symbol = mapM_ (\pos -> serializer $ generateMorseSample sampleRate frequency symAmplitude pos) [1 .. symLength]
+generateMorseSymbol serializer sampleRate dotLength frequency amplitude symbol = mapM_ (serializer . generateMorseSample sampleRate frequency symAmplitude) [1 .. symLength]
     where symLength = floor $ sampleRate * dotLength * case symbol of
                                             Morse.MorseDot -> 1
                                             Morse.MorseDash -> 3

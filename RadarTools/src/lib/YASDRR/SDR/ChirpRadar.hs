@@ -31,20 +31,10 @@ data ChirpRadarSettings = ChirpRadarSettings
 chirpRx :: ChirpRadarSettings -> 
                     (VUB.Vector (Complex Double) -> VUB.Vector (Complex Double))
 chirpRx programSettings = compressReturn windowedChirp pulseWindow
-    where sampleRate = optSampleRate programSettings
-          
-          frequecyShift = optFrequencyShift programSettings
-          startFrequency = frequecyShift +  optStartFrequency programSettings
-          endFrequency = frequecyShift + optEndFrequency programSettings
-          
-          chirpLength = optRiseTime programSettings
+    where chirpLength = optRiseTime programSettings
           silenceLength = optSilenceLength programSettings
           
-          normalizedChirp = generateChirp sampleRate startFrequency endFrequency chirpLength
-          
-          window = getChirpWindow (optChirpWindow programSettings) $ floor chirpLength 
-          
-          windowedChirp = VUB.zipWith (\windowCoef sample -> (windowCoef :+ 0) * sample) window normalizedChirp
+          windowedChirp = generateChirpUsingSettings programSettings {optAmplitude = 1.0}
           
           pulseTruncationLength = optSilenceTruncateLength programSettings
           
@@ -53,24 +43,28 @@ chirpRx programSettings = compressReturn windowedChirp pulseWindow
 
 chirpTx :: ChirpRadarSettings -> VUB.Vector (Complex Double)
 chirpTx programSettings = windowedChirp VUB.++ VUB.replicate silenceLength (0.0 :+ 0.0)
+    where windowedChirp = generateChirpUsingSettings programSettings
+          silenceLength = optSilenceLength programSettings
 
+
+
+generateChirpUsingSettings :: ChirpRadarSettings -> VUB.Vector (Complex Double)
+generateChirpUsingSettings programSettings = windowedChirp
     where sampleRate = optSampleRate programSettings
           
           frequecyShift = optFrequencyShift programSettings
-          startFrequency =frequecyShift +  optStartFrequency programSettings
+          startFrequency = frequecyShift +  optStartFrequency programSettings
           endFrequency = frequecyShift + optEndFrequency programSettings
               
           amplitude = optAmplitude programSettings
               
           chirpLength = optRiseTime programSettings
-          silenceLength = optSilenceLength programSettings
               
               
           normalizedChirp = generateChirp sampleRate startFrequency endFrequency chirpLength
           window = getChirpWindow (optChirpWindow programSettings) $ floor chirpLength 
           adjustedChirp = VUB.map (\sample -> (amplitude :+ 0.0) * sample ) normalizedChirp
           windowedChirp = VUB.zipWith (\windowCoef sample -> (windowCoef :+ 0) * sample) window adjustedChirp
-
 
 compressReturn :: VUB.Vector (Complex Double) -> Maybe (VUB.Vector (Complex Double)) -> 
                         VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)

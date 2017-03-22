@@ -31,6 +31,7 @@ commandLineOptions =
  ]
 
 main :: IO ()
+{-# ANN module "HLint: ignore Use :" #-}
 main = do
     arguments <- getArgs
     case GetOpt.getOpt' GetOpt.Permute commandLineOptions arguments of
@@ -46,11 +47,11 @@ main = do
                      CM.when (optAboutMessageRequested programOptions) mainAbout
                      hPutStrLn stderr "Mode Must be specified"
                      exitFailure
-                 CL.ChirpReceive -> do
+                 CL.ChirpReceive -> 
                      ChirpRx.chirpRxMainIO finalCommandInput
-                 CL.ChirpTransmit -> do
+                 CL.ChirpTransmit -> 
                      ChirpTx.chirpTxMainIO finalCommandInput
-                 CL.MorseTransmit -> do
+                 CL.MorseTransmit -> 
                      MorseTx.morseTxMainIO finalCommandInput
                  _ -> do
                      hPutStrLn stderr "Execution mode supplied was invalid"

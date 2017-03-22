@@ -88,13 +88,22 @@ inputFileOutput handler = GetOpt.Option shortOptionsNames longOptionNames (ReqAr
 commonOutputFileHandler :: String -> IO (B.ByteString -> IO (), IO ()) 
 commonOutputFileHandler input = do
     handle <- openBinaryFile input WriteMode
-    return $ (B.hPut handle, hClose handle)
+    return (B.hPut handle, hClose handle)
 
 
 inputOutputSignalFormat :: (SampleFormat -> a -> IO a) -> OptDescr (a -> IO a)
-inputOutputSignalFormat recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+inputOutputSignalFormat = inputSignalFormatHandler description
     where description = "Format of output signal"
-          longOptionNames = ["signalOutputFormat", "SignalOutputFormat"]
+
+
+inputInputSignalFormat :: (SampleFormat -> a -> IO a) -> OptDescr (a -> IO a)
+inputInputSignalFormat = inputSignalFormatHandler description
+    where description = "Format of input signal"
+
+
+inputSignalFormatHandler :: String -> (SampleFormat -> a -> IO a) -> OptDescr (a -> IO a)
+inputInputSignalFormat description recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+    where longOptionNames = ["signalInputFormat", "SignalInputFormat"]
           shortOptionsNames = []
           argExp = "Double | Float | Signed16"
           handler input = recordHandler $ getSampleFormatFromString input
@@ -108,10 +117,10 @@ inputFileInput handler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg
           argExp = "FILE"
 
 
-commonInputFileHandler :: String -> IO ((Int -> IO B.ByteString), IO ())
+commonInputFileHandler :: String -> IO (Int -> IO B.ByteString, IO ())
 commonInputFileHandler input = do
     handle <- openBinaryFile input ReadMode
-    return $ (safeReader handle, hClose handle)
+    return (safeReader handle, hClose handle)
 
 --Avoids throwing an EOF exception
 safeReader :: Handle -> Int -> IO B.ByteString
@@ -121,15 +130,6 @@ safeReader h size = do
         return B.empty
     else
         B.hGet h size
-
-
-inputInputSignalFormat :: (SampleFormat -> a -> IO a) -> OptDescr (a -> IO a)
-inputInputSignalFormat recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
-    where description = "Format of input signal"
-          longOptionNames = ["signalInputFormat", "SignalInputFormat"]
-          shortOptionsNames = []
-          argExp = "Double | Float | Signed16"
-          handler input = recordHandler $ getSampleFormatFromString input
 
 
 getSampleFormatFromString :: String -> SampleFormat

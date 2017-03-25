@@ -92,19 +92,18 @@ commonOutputFileHandler input = do
 
 
 inputOutputSignalFormat :: (SampleFormat -> a -> IO a) -> OptDescr (a -> IO a)
-inputOutputSignalFormat = inputSignalFormatHandler description
+inputOutputSignalFormat = inputSignalFormatHandler description ["signalOutputFormat", "SignalOutputFormat"]
     where description = "Format of output signal"
 
 
 inputInputSignalFormat :: (SampleFormat -> a -> IO a) -> OptDescr (a -> IO a)
-inputInputSignalFormat = inputSignalFormatHandler description
+inputInputSignalFormat = inputSignalFormatHandler description ["signalInputFormat", "SignalInputFormat"]
     where description = "Format of input signal"
 
 
-inputSignalFormatHandler :: String -> (SampleFormat -> a -> IO a) -> OptDescr (a -> IO a)
-inputSignalFormatHandler description recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
-    where longOptionNames = ["signalInputFormat", "SignalInputFormat"]
-          shortOptionsNames = []
+inputSignalFormatHandler :: String -> [String] -> (SampleFormat -> a -> IO a) -> OptDescr (a -> IO a)
+inputSignalFormatHandler description longOptionNames recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+    where shortOptionsNames = []
           argExp = "Double | Float | Signed16"
           handler input = recordHandler $ getSampleFormatFromString input
 

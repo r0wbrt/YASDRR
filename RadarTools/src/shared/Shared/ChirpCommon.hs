@@ -440,9 +440,3 @@ validateSilenceTruncationLength options errors = if optSilenceTruncateLength opt
 validateRepetitions :: ChirpOptions -> [String] -> [String]
 validateRepetitions options errors = if optRepetitions options /= -1 && optRepetitions options <=0 then errorMessage:errors else errors
     where errorMessage = "Repetitions must be greater then 0 or -1 to indicate infinite repetition."
-
-
-
-
-
- 

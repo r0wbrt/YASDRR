@@ -30,10 +30,12 @@ Portability :  portable
 module YASDRR.SDR.ChirpRadar (ChirpRadarSettings (..), 
         SignalWindow (HammingWindow, NoWindow), chirpRx, chirpTx, generateChirp) where 
 
-
+-- System imports
 import Data.Complex
 import Data.Maybe
 import qualified Data.Vector.Unboxed as VUB
+
+-- yasdrr library imports
 import qualified YASDRR.DSP.Correlation as Cor
 import qualified YASDRR.DSP.Windows as Windows
 

@@ -1,4 +1,21 @@
---Copyright Robert C. Taylor - All Rights Reserved
+{-
+
+Copyright 2017 Robert Christian Taylor
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-}
+
 
 {- |
 Module      :  Shared.MorseTx
@@ -28,7 +45,6 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.Binary.Put as BP
 import System.Console.GetOpt as GetOpt
 import System.IO
-import System.Exit
 import Data.Complex
 import qualified Control.Monad as CM
 
@@ -103,11 +119,6 @@ morseTxOptions =
     , CL.inputAbout (CL.commonAboutHandler morseTxOptions (Just "MorseTx") descriptionMessage)
     , CL.inputHelp (CL.commonHelpHandler morseTxOptions (Just "MorseTx"))
     ]
-
-
--- | Validates the program options for correctness.
-validateOptions :: MorseOptions -> [String]
-validateOptions options = foldl (\l r -> r options l) [] [validateWpm, validateSampleRate]
 
 
 -- | Ensures the supplied words per minute makes sense.
@@ -191,7 +202,6 @@ processCommandInput argOrder arguments = (CL.processInput startOptions actions, 
 --   to MorseTx. Closes output handle and exits the program if it encounters
 --   invalid command line options.
 morseTxMainIO :: [String] -> IO ()
-{-# ANN module "HLint: ignore Use :" #-}
 morseTxMainIO commandLineOptions = 
     case processCommandInput GetOpt.RequireOrder commandLineOptions of
               
@@ -200,9 +210,9 @@ morseTxMainIO commandLineOptions =
              
              executionSettings <- parserResults
              
-             let errorCheck = validateOptions executionSettings
+             let errorCheck = CL.validateOptions executionSettings [validateWpm, validateSampleRate]
              
-             CM.when (errorCheck /= []) (programInputError errorCheck)
+             CM.when (errorCheck /= []) (CL.programInputError errorCheck)
              
              hSetBinaryMode stdout True 
              
@@ -213,14 +223,7 @@ morseTxMainIO commandLineOptions =
              optionsOutputCloser executionSettings
              
           -- Case triggered when the user supplies invalid input
-         (_, _, errors) -> programInputError errors
-
-
-
-programInputError :: [String] -> IO ()
-programInputError errors = do
-    hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
-    exitFailure
+         (_, _, errors) -> CL.programInputError errors
 
 
 -- | Encodes a input string into a morse code signal and returns the output

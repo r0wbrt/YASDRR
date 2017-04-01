@@ -1,30 +1,72 @@
+{-
+
+Copyright 2017 Robert Christian Taylor
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-}
+
+{- |
+Module      :  Shared.ChirpRx
+Description :  Program to process received radar chirps
+Copyright   :  (c) Robert C. Taylor
+License     :  Apache 2.0
+
+Maintainer  :  r0wbrt@gmail.com
+Stability   :  unstable 
+Portability :  portable 
+
+This program processes a radar signal using correlation to perform chirp
+pulse compression
+-}
 module Shared.ChirpRx where
 
 
-import qualified Shared.ChirpCommon as ChirpCommon
-import System.Console.GetOpt as GetOpt
-import qualified YASDRR.SDR.ChirpRadar as Chirp
-import qualified Data.ByteString as B
-import qualified Shared.CommandLine as CL
-import qualified Data.Vector.Unboxed as VUB
-import qualified Shared.IO as SIO
-import Data.Complex
+-- System imports
 import System.IO
 import System.Exit
+import qualified Control.Monad as CM
+import Data.Complex
+import qualified Data.ByteString as B
+import qualified Data.Vector.Unboxed as VUB
+import System.Console.GetOpt as GetOpt
+
+--  yasdrr library imports
+import qualified YASDRR.SDR.ChirpRadar as Chirp
+
+-- yasdrr executable imports
+import qualified Shared.ChirpCommon as ChirpCommon
+import qualified Shared.CommandLine as CL
+import qualified Shared.IO as SIO
 
 
+-- | process the command line input into the program settings
 processCommandInput :: GetOpt.ArgOrder (ChirpCommon.ChirpOptions -> IO ChirpCommon.ChirpOptions) -> [String] ->  (IO ChirpCommon.ChirpOptions, [String], [String])
 processCommandInput argOrder arguments = (CL.processInput ChirpCommon.startOptions actions, extra, errors)
     where (actions, extra, errors) = GetOpt.getOpt argOrder ChirpCommon.chirpRadarRxOptions arguments 
 
 
+-- | The main IO entry point for standalone RX radar.
 chirpRxMainIO :: [String] -> IO ()
-{-# ANN module "HLint: ignore Use :" #-}
 chirpRxMainIO arguments =
     case processCommandInput GetOpt.RequireOrder arguments of
         (programSettingsIO, [], []) -> do
                 
                 programSettings <- programSettingsIO
+                
+                let errorCheck = CL.validateOptions programSettings ChirpCommon.chirpRadarRxValidators
+             
+                CM.when (errorCheck /= []) (CL.programInputError errorCheck)
                 
                 hSetBinaryMode stdout True 
                 hSetBinaryMode stdin True
@@ -38,13 +80,11 @@ chirpRxMainIO arguments =
                 _ <- ChirpCommon.optCloseInput programSettings
                 
                 exitSuccess
-        (_, _, errors) -> do
-                hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
-                exitFailure
+        (_, _, errors) -> CL.programInputError errors
 
 
+-- | Emebeded mode entry point for chirp radar rx program
 chirpRxMain :: ChirpCommon.ChirpOptions -> IO () 
-{-# ANN module "HLint: ignore Use :" #-}
 chirpRxMain programSettings = do
               
               let chirpLength = ChirpCommon.calculateSignalLength programSettings
@@ -78,6 +118,7 @@ chirpRxMain programSettings = do
               processData signalProcessor signalReader signalWriter
 
 
+-- | Compresses a received radar signal using pulse compression.
 processData :: (VUB.Vector (Complex Double) ->
                 VUB.Vector (Complex Double)) -> 
                  IO (Maybe ( VUB.Vector (Complex Double) ) )  -> 
@@ -93,6 +134,7 @@ processData signalProcessor signalReader signalWriter = do
          Nothing -> return ()
 
 
+-- | Reads in radar samples using the reader function
 readInput :: Int -> Int -> CL.SampleFormat -> (Int -> IO B.ByteString) -> IO (Maybe (VUB.Vector (Complex Double)))
 readInput signalLength pulseTruncationLength sampleFormat reader = do    
         
@@ -113,4 +155,4 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
             where decoder = case sampleFormat of
                                 CL.SampleComplexDouble -> SIO.complexDoubleDeserializer
                                 CL.SampleComplexFloat -> SIO.complexFloatDeserializer
-                                CL.SampleComplexSigned16 -> SIO.complexSigned16Deserializer 1.0
+                                CL.SampleComplexSigned16 -> SIO.complexSigned16DeserializerOne

@@ -1,4 +1,32 @@
+{-
 
+Copyright 2017 Robert Christian Taylor
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-}
+
+{- |
+Module      :  Shared.IO
+Description :  Serialization and deserialization code
+Copyright   :  (c) Robert C. Taylor
+License     :  Apache 2.0
+
+Maintainer  :  r0wbrt@gmail.com
+Stability   :  unstable 
+Portability :  portable 
+
+-}
 
 module Shared.IO (
                                             BinaryParserExceptions 
@@ -7,12 +35,12 @@ module Shared.IO (
                                                         UnhandledExtraInput),
             deserializeBlock, serializeBlock, blockListDeserializer,
             blockListSerializer, complexFloatSerializer,
-            complexFloatDeserializer, complexSC11Deserializer,
-            complexSC11Serializer, complexSigned16Serializer, 
-            complexSigned16SerializerOne, complexDoubleSerializer, 
-            serializeBlockV,
+            complexFloatDeserializer, complexSigned16Serializer, 
+            complexSigned16SerializerOne, complexSigned16DeserializerOne,
+            complexDoubleSerializer, serializeBlockV,
             complexDoubleDeserializer, complexSigned16Deserializer, serializeOutput) where
 
+-- System imports
 import qualified Data.Binary.Get as BG
 import qualified Data.Binary.Put as BP
 import qualified Data.ByteString as B
@@ -23,10 +51,13 @@ import Control.Exception
 import Data.Typeable
 import qualified Data.Vector.Unboxed as VUB
 import qualified Control.Monad as CM
+
+--yasdrr shared imports
 import qualified Shared.CommandLine as CL
 
 
-
+-- | Using the supplied sample format, converts a complex double vector into its
+--   associated bytestring.
 serializeOutput :: CL.SampleFormat -> VUB.Vector (Complex Double) -> B.ByteString
 serializeOutput format signal = case format of
                                    CL.SampleComplexDouble -> serializeBlockV complexDoubleSerializer signal
@@ -34,13 +65,15 @@ serializeOutput format signal = case format of
                                    CL.SampleComplexSigned16 -> serializeBlockV complexSigned16SerializerOne signal 
 
 
-
+-- | List of exceptions deserializeBlock can throw to consuming code.
 data BinaryParserExceptions = DidNotExpectIncompleteData String 
                             | FailedWhileParsing String 
                             | UnhandledExtraInput String  
     deriving (Show, Typeable)
 instance Exception BinaryParserExceptions
 
+
+-- |  Helper function for deserializing a block of data. 
 deserializationStreamProcessor :: BG.Get a -> [a] -> BG.Get [a]
 deserializationStreamProcessor decoder acc = do
     
@@ -55,6 +88,8 @@ deserializationStreamProcessor decoder acc = do
             sample <- decoder
             deserializationStreamProcessor decoder (sample:acc)
 
+
+-- | Converts a binary string into the requested data type.
 deserializeBlock :: BG.Get a -> B.ByteString -> ([a], B.ByteString)
 deserializeBlock decoder block = 
         
@@ -79,25 +114,31 @@ serializationStreamProcessor _ [] = return ()
 serializationStreamProcessor parser (x:xs) = do
     parser x 
     serializationStreamProcessor parser xs
-    
+
+
+-- | Converts a list of data into it associated ByteString type.
 serializeBlock :: (a -> BP.Put) -> [a] -> B.ByteString
 serializeBlock encoder block = BL.toStrict $ BP.runPut puter
                                               
     where puter = serializationStreamProcessor encoder block
-          
-          
+
+
+-- | Converts a vector of data into its associated type.
 serializeBlockV :: (VUB.Unbox a) => (a -> BP.Put) -> VUB.Vector a -> B.ByteString
 serializeBlockV encoder block = BL.toStrict $ BP.runPut puter
                                               
     where puter = serializationStreamProcessorV encoder block
-    
-    
+
+
+-- | Helper function for serializing a vector into a byte string.
 serializationStreamProcessorV :: (VUB.Unbox a) => (a -> BP.Put) -> VUB.Vector a -> BP.Put
 serializationStreamProcessorV parser vector = do
     parser $ VUB.unsafeHead vector 
     CM.when (VUB.length vector > 1) $ serializationStreamProcessorV parser (VUB.tail vector) 
-    
-    
+
+
+-- | Takes an input bytestring and converts it into a list of blocks, where each
+--   block is a list with the requested size of the desired type.
 blockListDeserializer :: BG.Get a -> Int -> BG.Get [a]
 blockListDeserializer _ 0 = return []
 blockListDeserializer decoder size = do
@@ -105,7 +146,9 @@ blockListDeserializer decoder size = do
     signalTail <- blockListDeserializer decoder (size - 1)
     return (signalHead:signalTail)
 
-    
+
+-- | Takes a list of lists of a specified type and then serializes the data into
+--   a bytestring.
 blockListSerializer :: (a -> BP.Put) -> [a] -> BP.Put
 blockListSerializer _ [] = return ()
 blockListSerializer encoder input = do
@@ -113,37 +156,59 @@ blockListSerializer encoder input = do
     encoder (head input)
     
     blockListSerializer encoder (tail input)
-    
-    
+
+
+-- | Serializes a complexDouble.
 complexDoubleSerializer :: Complex Double -> BP.Put
 complexDoubleSerializer (real :+ imaginary) = do
     BP.putDoublele real
     BP.putDoublele imaginary
-    
-    
+
+
+-- | Serializes a Complex Double into a signed 16 with arbitrary base.
 complexSigned16Serializer :: Double -> Complex Double -> BP.Put
 complexSigned16Serializer base (real :+ imaginary) = do
     BP.putInt16host $ convertNumber real
     BP.putInt16host $ convertNumber imaginary
     
     where convertNumber number = floor $ signum number * abs (minimum [ 32767.0 * number / base, 32767.0])
-          
-          
+
+
+-- | Serializes a Complex Double into a signed 16 with base 1.
+--   Faster then complexSigned16Serializer since no division is performed.
 complexSigned16SerializerOne :: Complex Double -> BP.Put
 complexSigned16SerializerOne (real :+ imaginary) = do
     BP.putInt16host $ convertNumber real
     BP.putInt16host $ convertNumber imaginary
     
     where convertNumber number = floor $ signum number * abs (minimum [ 32767.0 * number, 32767.0])
+
+
+-- | Deserializes a complex signed 16 into a complex double using a base of 1.
+complexSigned16DeserializerOne :: BG.Get (Complex Double)
+complexSigned16DeserializerOne = do
     
+    --First parse the data from the stream
+    real <- BG.getWord16le
+    imaginary <- BG.getWord16le
     
+    --Next scale the data accordingly
+    let realD = fromIntegral real / 32768.0
+    let imagD = fromIntegral imaginary / 32768.0
+    
+    --Return the result.
+    return (realD :+ imagD)
+
+
+-- | Serializes a complex float.
 complexFloatSerializer :: Complex Double -> BP.Put
 complexFloatSerializer (real :+ imaginary) = do
     
     BP.putFloatle (double2Float real)
     BP.putFloatle (double2Float imaginary)
 
-    
+
+-- | Deserializes a complex float.
 complexFloatDeserializer :: BG.Get (Complex Double)
 complexFloatDeserializer = do
     
@@ -151,8 +216,9 @@ complexFloatDeserializer = do
     imaginary <- BG.getFloatle
     
     return (float2Double real :+ float2Double imaginary)
-    
-    
+
+
+-- | Deserializes a complex double
 complexDoubleDeserializer :: BG.Get (Complex Double)
 complexDoubleDeserializer = do
     
@@ -160,8 +226,9 @@ complexDoubleDeserializer = do
     imaginary <- BG.getDoublele
     
     return (real :+ imaginary)
-    
-    
+
+
+-- | Serializes a complex double to a signed 16 using an arbitrary base.
 complexSigned16Deserializer :: Double -> BG.Get (Complex Double)
 complexSigned16Deserializer base = do
     
@@ -172,31 +239,6 @@ complexSigned16Deserializer base = do
     --Next scale the data accordingly
     let realD = (fromIntegral real * base) / 32768.0
     let imagD = (fromIntegral imaginary * base) / 32768.0
-    
-    --Return the result.
-    return (realD :+ imagD)
-    
-    
-complexSC11Serializer :: Complex Double -> BP.Put
-complexSC11Serializer (real :+ imaginary) = do
-    
-    BP.putInt16le $ convertNumber real
-    BP.putInt16le $ convertNumber imaginary
-    
-    --Helper function to scale and then convert the number
-    where convertNumber number = floor $ signum number * abs (minimum [2047.0 * number, 2047.0])
-
-
-complexSC11Deserializer :: BG.Get (Complex Double)
-complexSC11Deserializer = do
-    
-    --First parse the data from the stream
-    real <- BG.getWord16le
-    imaginary <- BG.getWord16le
-    
-    --Next scale the data accordingly
-    let realD = fromIntegral real / 2048.0
-    let imagD = fromIntegral imaginary / 2048.0
     
     --Return the result.
     return (realD :+ imagD)

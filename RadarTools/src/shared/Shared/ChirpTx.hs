@@ -1,7 +1,23 @@
---Copyright Robert C. Taylor - All Rights Reserved
+{-
+
+Copyright 2017 Robert Christian Taylor
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-}
 
 {- |
-Module      :  ChirpTx
+Module      :  Shared.ChirpTx
 Description :  Program to generate radar chirps
 Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
@@ -15,28 +31,39 @@ This program generates linear chirps for chirp based pulse compression radar.
 module Shared.ChirpTx where
 
 
-import qualified Shared.ChirpCommon as ChirpCommon
+-- System imports
 import System.Console.GetOpt as GetOpt
-import qualified YASDRR.SDR.ChirpRadar as Chirp
-import qualified Data.ByteString as B
-import qualified Shared.CommandLine as CL
-import qualified Shared.IO as SIO
 import System.IO
 import System.Exit
+import qualified Data.ByteString as B
+import qualified Control.Monad as CM
 
+-- yasdrr imports
+import qualified YASDRR.SDR.ChirpRadar as Chirp
 
+-- yasdrr shared imports
+import qualified Shared.CommandLine as CL
+import qualified Shared.IO as SIO
+import qualified Shared.ChirpCommon as ChirpCommon
+
+-- | Process the command line input and populates the setting record.
 processCommandInput :: GetOpt.ArgOrder (ChirpCommon.ChirpOptions -> IO ChirpCommon.ChirpOptions) -> [String] ->  (IO ChirpCommon.ChirpOptions, [String], [String])
 processCommandInput argOrder arguments = (CL.processInput ChirpCommon.startOptions actions, extra, errors)
     where (actions, extra, errors) = GetOpt.getOpt argOrder ChirpCommon.chirpRadarTxOptions arguments
 
 
+-- | Chirp TX stanalone mode entry.
 chirpTxMainIO :: [String] -> IO ()
-{-# ANN module "HLint: ignore Use :" #-}
 chirpTxMainIO arguments =
     case processCommandInput GetOpt.RequireOrder arguments of
         (programSettingsIO, [], []) -> do
               
               programSettings <- programSettingsIO
+              
+              let errorCheck = CL.validateOptions programSettings ChirpCommon.chirpRadarTxValidators
+             
+              CM.when (errorCheck /= []) (CL.programInputError errorCheck)
+              
               
               hSetBinaryMode stdout True 
               
@@ -47,13 +74,11 @@ chirpTxMainIO arguments =
               _ <- ChirpCommon.optCloseOutput programSettings
               
               exitSuccess
-        (_, _, errors) -> do
-              hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
-              exitFailure
+        (_, _, errors) -> CL.programInputError errors
 
 
+-- | Chirp TX emebeded main entry.
 chirpTxMain :: ChirpCommon.ChirpOptions -> IO ()
-{-# ANN module "HLint: ignore Use :" #-}
 chirpTxMain programSettings = do
     
     let chirpLength = ChirpCommon.calculateSignalLength programSettings
@@ -81,6 +106,7 @@ chirpTxMain programSettings = do
     writeOutput writer finalSignal repetitions
 
 
+-- | Writes the output of the chirp tx program
 writeOutput :: (B.ByteString -> IO ()) -> B.ByteString -> Int -> IO ()
 writeOutput _ _ 0 = return ()
 writeOutput writer signal count = do

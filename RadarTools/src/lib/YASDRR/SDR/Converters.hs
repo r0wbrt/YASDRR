@@ -1,4 +1,20 @@
---Copyright Robert C. Taylor
+{-
+
+Copyright 2017 Robert Christian Taylor
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-}
 
 {- |
 Module      :  YASDRR.SDR.Converter
@@ -38,7 +54,9 @@ bytesToSymbols wordSize constellationArray dataBlock =
         
     where isWordSizePowerOf2AndSizeMost8 = ((2 ^ MathMisc.discretePowerOf2 wordSize) == wordSize && wordSize <= 8) || error "bytesToSymbols was supplied with invalid word size."
     
-          
+
+-- | Takes a byte as input, and using a supplied mapping array, converts that
+--   byte into a list of symbols.
 byteToSymbol :: Array.Array Word8 (Complex Double) -> Int -> 
                                                 Int -> Word8 -> [Complex Double]
 byteToSymbol _ _ 8 _ = []

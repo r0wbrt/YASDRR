@@ -42,9 +42,9 @@ chirpTxMainIO arguments =
               
               chirpTxMain programSettings
               
-              _ <- ChirpCommon.optCloseOutput programSettings
-              
               hSetBinaryMode stdout False 
+              
+              _ <- ChirpCommon.optCloseOutput programSettings
               
               exitSuccess
         (_, _, errors) -> do

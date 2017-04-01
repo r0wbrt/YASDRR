@@ -31,11 +31,11 @@ chirpRxMainIO arguments =
                 
                 chirpRxMain programSettings
                 
-                _ <- ChirpCommon.optCloseOutput programSettings
-                _ <- ChirpCommon.optCloseInput programSettings
-                
                 hSetBinaryMode stdout False 
                 hSetBinaryMode stdin False 
+                
+                _ <- ChirpCommon.optCloseOutput programSettings
+                _ <- ChirpCommon.optCloseInput programSettings
                 
                 exitSuccess
         (_, _, errors) -> do

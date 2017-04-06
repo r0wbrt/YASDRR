@@ -39,7 +39,7 @@ import System.IO
 
 
 -- | Sample format field.
-data SampleFormat = SampleComplexDouble | SampleComplexFloat | SampleComplexSigned16
+data SampleFormat = SampleComplexDouble | SampleComplexFloat | SampleComplexSigned16 | SampleComplexToDoubleMag | SampleComplexToFloatMag | SampleComplexToSigned16Mag
 
 
 --  | Mode of execution of the shared yasdrr program.
@@ -222,6 +222,14 @@ inputMessage handler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg h
           longOptionNames = ["inputMessage", "InputMessage"]
           shortOptionsNames = []
           argExp = "Input Message to convert"
+
+
+-- | Indicates to the program that the output should be the magnitude of the complex vector.
+inputOutputMagnitude :: (a -> IO a) -> OptDescr (a -> IO a)
+inputOutputMagnitude handler = GetOpt.Option shortOptionsNames longOptionNames (GetOpt.NoArg handler) description
+    where description = "Output the final result as the square of the magnitude of the complex number. |Z|^2"
+          longOptionNames = ["outputAsMagnitude", "outputAsMagnitude"]
+          shortOptionsNames = []
 
 
 -- | Handles the command line option that specifies the wpm

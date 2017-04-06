@@ -104,6 +104,11 @@ data ChirpOptions = ChirpOptions
  
  , optSilenceLength :: Int
  
+   -- When set to true, the chirp receiver output is the square of the complex's 
+   -- magnitude. 
+ 
+ , optOutputAsMagnitude :: Bool
+ 
    -- The amount of samples to truncate from a signal pulse.
  
  , optSilenceTruncateLength :: Int
@@ -154,6 +159,7 @@ startOptions = ChirpOptions
  , optRepetitions = 1 -- generate one pulse.
  , optAmplitude = 0.2 -- Don't overload equipment by default
  , optChirpWindow = NoWindow
+ , optOutputAsMagnitude = False
  , optSignalWindow = NoWindow
  }
 
@@ -204,6 +210,7 @@ chirpRadarRxOptions = chirpOptionList ++ [
     , inputSignalWindow
     , inputFileInput
     , inputInputSignalFormat
+    , inputOutputMagnitude
     , optionHelp chirpRadarRxOptions (Just "ChirpRx")
     , optionAbout chirpRadarRxOptions (Just "ChirpRx") $ unlines $ ["", "This program processes a received chirp radar signal", ""] ++ commonMessage
     ]
@@ -246,6 +253,17 @@ optionAbout options mode extra = CL.inputAbout (CL.commonAboutHandler options mo
 -- | --help option command line handler.
 optionHelp :: [OptDescr (ChirpOptions -> IO ChirpOptions)] -> Maybe String -> OptDescr (ChirpOptions -> IO ChirpOptions)
 optionHelp options mode = CL.inputHelp (CL.commonHelpHandler options mode)
+
+
+-- | Converts the sample format into its magnitude counterpart. 
+calculateSampleFormat :: ChirpOptions -> ChirpOptions
+calculateSampleFormat record = record {optOutputSampleFormat = adjFormat, optOutputAsMagnitude = True}
+    where format = optOutputSampleFormat record
+          adjFormat = case format of 
+                        CL.SampleComplexDouble -> CL.SampleComplexToDoubleMag
+                        CL.SampleComplexFloat -> CL.SampleComplexToFloatMag
+                        CL.SampleComplexSigned16 -> CL.SampleComplexToSigned16Mag
+                        _ -> format
 
 
 -- | --startFrequency command line option handler.
@@ -309,7 +327,7 @@ inputInputSignalFormat = CL.inputInputSignalFormat handler
 -- | command line handler for setting the output signal format.
 inputOutputSignalFormat :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputOutputSignalFormat = CL.inputOutputSignalFormat handler
-    where handler input opts = return $ opts { optOutputSampleFormat = input }
+    where handler input opts = return $ (if optOutputAsMagnitude opts then calculateSampleFormat else id) $ opts { optOutputSampleFormat = input }
 
 
 -- | Sets the length of silence following a chirp based on the command line input.
@@ -346,6 +364,13 @@ inputRepetitions = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handl
 inputAmplitude :: OptDescr (ChirpOptions -> IO ChirpOptions)
 inputAmplitude = CL.inputAmplitude handler
     where handler input opts = return $ opts {optAmplitude = input}
+
+
+-- | Sets the flag in the program receiver which makes the final output the 
+--   square of the complex stream's magnitude. 
+inputOutputMagnitude :: OptDescr (ChirpOptions -> IO ChirpOptions)
+inputOutputMagnitude = CL.inputOutputMagnitude handler
+    where handler opts = return $ calculateSampleFormat opts 
 
 
 -- | Sets the window to apply to the input signal before chirp processing.

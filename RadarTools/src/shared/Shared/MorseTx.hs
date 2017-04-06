@@ -251,6 +251,7 @@ morseTxMain executionSettings = do
                         -- division is one, so theoretically, the compilier should
                         -- have optimized the division out, had better performance.
                         CL.SampleComplexSigned16 -> SIO.complexSigned16SerializerOne
+                        _ -> error "Unsupported serialization type"
     
     let signalWriter = optionsOutputWriter executionSettings
     

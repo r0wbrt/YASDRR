@@ -37,8 +37,9 @@ module Shared.IO (
             blockListSerializer, complexFloatSerializer,
             complexFloatDeserializer, complexSigned16Serializer, 
             complexSigned16SerializerOne, complexSigned16DeserializerOne,
-            complexDoubleSerializer, serializeBlockV,
-            complexDoubleDeserializer, complexSigned16Deserializer, serializeOutput) where
+            complexDoubleSerializer, serializeBlockV, complexDoubleMagSerializer,
+            complexDoubleDeserializer, complexSigned16Deserializer, serializeOutput,
+            complexFloatMagSerializer) where
 
 -- System imports
 import qualified Data.Binary.Get as BG
@@ -59,10 +60,12 @@ import qualified Shared.CommandLine as CL
 -- | Using the supplied sample format, converts a complex double vector into its
 --   associated bytestring.
 serializeOutput :: CL.SampleFormat -> VUB.Vector (Complex Double) -> B.ByteString
-serializeOutput format signal = case format of
-                                   CL.SampleComplexDouble -> serializeBlockV complexDoubleSerializer signal
-                                   CL.SampleComplexFloat -> serializeBlockV complexFloatSerializer signal
-                                   CL.SampleComplexSigned16 -> serializeBlockV complexSigned16SerializerOne signal 
+serializeOutput CL.SampleComplexDouble signal = serializeBlockV complexDoubleSerializer signal
+serializeOutput CL.SampleComplexFloat signal = serializeBlockV complexFloatSerializer signal
+serializeOutput CL.SampleComplexSigned16 signal = serializeBlockV complexSigned16SerializerOne signal
+serializeOutput CL.SampleComplexToDoubleMag signal = serializeBlockV complexDoubleMagSerializer signal
+serializeOutput CL.SampleComplexToFloatMag signal = serializeBlockV complexFloatMagSerializer signal
+serializeOutput CL.SampleComplexToSigned16Mag signal = serializeBlockV complexSigned16MagSerializerOne signal
 
 
 -- | List of exceptions deserializeBlock can throw to consuming code.
@@ -165,6 +168,11 @@ complexDoubleSerializer (real :+ imaginary) = do
     BP.putDoublele imaginary
 
 
+-- | Serializes a complex double list into a list of squared complex double magnitudes |z|^2.
+complexDoubleMagSerializer :: Complex Double -> BP.Put
+complexDoubleMagSerializer (real :+ imaginary) = BP.putDoublele $ real*real + imaginary*imaginary
+
+
 -- | Serializes a Complex Double into a signed 16 with arbitrary base.
 complexSigned16Serializer :: Double -> Complex Double -> BP.Put
 complexSigned16Serializer base (real :+ imaginary) = do
@@ -180,6 +188,13 @@ complexSigned16SerializerOne :: Complex Double -> BP.Put
 complexSigned16SerializerOne (real :+ imaginary) = do
     BP.putInt16host $ convertNumber real
     BP.putInt16host $ convertNumber imaginary
+    
+    where convertNumber number = floor $ signum number * abs (minimum [ 32767.0 * number, 32767.0])
+
+
+-- | Serializes a complex double list into a list of squared complex signed 16 magnitudes |z|^2.
+complexSigned16MagSerializerOne :: Complex Double -> BP.Put
+complexSigned16MagSerializerOne (real :+ imaginary) = BP.putInt16host $ convertNumber $ real*real + imaginary*imaginary
     
     where convertNumber number = floor $ signum number * abs (minimum [ 32767.0 * number, 32767.0])
 
@@ -206,6 +221,11 @@ complexFloatSerializer (real :+ imaginary) = do
     
     BP.putFloatle (double2Float real)
     BP.putFloatle (double2Float imaginary)
+
+
+-- | Serializes a complex double list into a list of squared complex float magnitudes |z|^2.
+complexFloatMagSerializer :: Complex Double -> BP.Put
+complexFloatMagSerializer (real :+ imaginary) = BP.putFloatle $ double2Float (real*real + imaginary*imaginary)
 
 
 -- | Deserializes a complex float.

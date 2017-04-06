@@ -147,6 +147,7 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
                         CL.SampleComplexDouble -> 16
                         CL.SampleComplexFloat -> 8
                         CL.SampleComplexSigned16 -> 4
+                        _ -> error "Sample format not supported"
           
           signalLengthBytes = signalLength * sampleSize
           truncationLengthBytes = sampleSize * pulseTruncationLength
@@ -156,3 +157,4 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
                                 CL.SampleComplexDouble -> SIO.complexDoubleDeserializer
                                 CL.SampleComplexFloat -> SIO.complexFloatDeserializer
                                 CL.SampleComplexSigned16 -> SIO.complexSigned16DeserializerOne
+                                _ -> error "Sample format not supported"

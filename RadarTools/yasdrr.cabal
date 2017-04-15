@@ -2,11 +2,12 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                YASDRR
-version:             2
-synopsis:            Tools to implement an Orthogonal frequency-division multiplexing radar using software defined radio processing techniques.
--- description:         
-license:             AllRightsReserved
-license-file:        LICENSE
+version:             17.04.15
+synopsis:            Functionality to perform chirp radar processing 
+description:         This library and associated executables provides functionality to perform chirp pulse compression based radar.
+license:             Apache
+license-files:       LICENSE
+                     NOTICE
 author:              Robert Christian Taylor
 maintainer:          robert@robertct.com
 copyright:           (c) 2016 Robert Christian Taylor

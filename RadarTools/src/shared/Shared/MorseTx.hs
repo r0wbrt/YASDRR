@@ -24,76 +24,82 @@ Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
 
 Maintainer  :  r0wbrt@gmail.com
-Stability   :  unstable 
-Portability :  portable 
+Stability   :  unstable
+Portability :  portable
 
-This module has functionality to generate morse code waveforms at arbitary 
+This module has functionality to generate morse code waveforms at arbitary
 sample rates. The code has been tested up to 26MSPS. However, the program
 here is far too slow for realtime use at 26MSPS based on tests performed
-on a 3.4Ghz i7-6700 CPU. However, the program was deemed fast enough to run at 
-its target rate, 1.5MSPS. The program generated 20 seconds of 20wpm morse code 
+on a 3.4Ghz i7-6700 CPU. However, the program was deemed fast enough to run at
+its target rate, 1.5MSPS. The program generated 20 seconds of 20wpm morse code
 in under 4 seconds.
 
 -}
 
-module Shared.MorseTx where
+module Shared.MorseTx
+    ( MorseOptions (..)
+    , processCommandInput
+    , morseTxMainIO
+    , morseTxMain
+    , startOptions
+    ) where
 
-import qualified Shared.CommandLine as CL
-import qualified YASDRR.SDR.MorseCode as Morse
-import qualified Shared.IO as SIO
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.Binary.Put as BP
-import System.Console.GetOpt as GetOpt
-import System.IO
-import Data.Complex
-import qualified Control.Monad as CM
+import qualified Control.Monad         as CM
+import qualified Data.Binary.Put       as BP
+import qualified Data.ByteString.Lazy  as BL
+import           Data.Complex
+import qualified Shared.CommandLine    as CL
+import qualified Shared.IO             as SIO
+import           System.Console.GetOpt as GetOpt
+import           System.IO
+import qualified YASDRR.SDR.MorseCode  as Morse
 
 
 -- | Settings controling the morse transmitter.
-data MorseOptions = 
-    MorseOptions { 
+data MorseOptions =
+    MorseOptions {
                    -- Input to encode into a morse transmission
-                   
-                   optionsInput :: IO String  
-                   
+
+                   optionsInput              :: IO String
+
                    -- The sample rate of the morse transmission
-                   
-                 , optionsSampleRate :: Double 
-                 
+
+                 , optionsSampleRate         :: Double
+
                    -- The keying rate of the morse transmission
-                   
-                 , optionsWordsPerMinute :: Int 
-                 
+
+                 , optionsWordsPerMinute     :: Int
+
                    -- Offset of the generated wave form from zero Hz
-                   
-                 , optionsDotFrequency :: Double 
-                 
-                   -- IO path to route the output waveform. Generally a 
-                   -- function that writes to a file. However, it could 
+
+                 , optionsDotFrequency       :: Double
+
+                   -- IO path to route the output waveform. Generally a
+                   -- function that writes to a file. However, it could
                    -- hypothetically just be some sort of message channel,
                    -- so code should not assume this goes to a file.
-                   
-                 , optionsOutputWriter :: BL.ByteString -> IO () 
-                 
+
+                 , optionsOutputWriter       :: BL.ByteString -> IO ()
+
                    -- Format of the transmitted signal
-                   
-                 , optionsOutputSignalFormat :: CL.SampleFormat 
-                 
-                   -- Function to call that will perform any final actions 
+
+                 , optionsOutputSignalFormat :: CL.SampleFormat
+
+                   -- Function to call that will perform any final actions
                    -- on the output stream.
-                   
-                 , optionsOutputCloser :: IO () 
-                 
+
+                 , optionsOutputCloser       :: IO ()
+
                    -- Amplitude of the morse signal.
-                   
-                 , optionsAmplitude :: Double 
+
+                 , optionsAmplitude          :: Double
                  }
 
 
--- | The default values of the options. By default, the morse input string is 
+-- | The default values of the options. By default, the morse input string is
 --   read from stdin and the generated output written to stdout.
 startOptions :: MorseOptions
-startOptions =  
+startOptions =
     MorseOptions { optionsInput = getContents
                  , optionsSampleRate = 44100::Double -- https://en.wikipedia.org/wiki/44,100_Hz
                  , optionsWordsPerMinute = 20::Int
@@ -107,7 +113,7 @@ startOptions =
 
 -- | Functions to process the command line input and modify startOptions.
 morseTxOptions :: [OptDescr (MorseOptions -> IO MorseOptions)]
-morseTxOptions = 
+morseTxOptions =
     [ CL.inputFileInput (\input opt -> return opt { optionsInput = openFile input ReadMode >>= hGetContents  })
     , CL.inputMessage (\input opt -> return opt { optionsInput = return input})
     , CL.inputFileOutput inputFileOutput
@@ -131,7 +137,7 @@ validateWpm options list = if wpm < 1 then errorMessage:list else list
 -- | Ensures the supplied sampling rate makes sense.
 validateSampleRate :: MorseOptions -> [String] -> [String]
 validateSampleRate options list = if sampleRate <= 0 then errorMessage:list else list
-    where sampleRate = optionsSampleRate options 
+    where sampleRate = optionsSampleRate options
           errorMessage = "Sampling rate must be greater then zero."
 
 
@@ -149,7 +155,7 @@ descriptionMessage :: String
 -- If possible, it would be nice to move this text to a resource file for I18N
 -- reasons.
 descriptionMessage = unlines message
-    where message = [ "" 
+    where message = [ ""
                     , "Given an ascii string, this program generates the associated morse code"
                     , "signal."
                     , ""
@@ -191,37 +197,37 @@ descriptionMessage = unlines message
                     ]
 
 
--- | Takes a list of strings representing command line input and processes them 
+-- | Takes a list of strings representing command line input and processes them
 --   into the MorseOptions record.
 processCommandInput :: GetOpt.ArgOrder (MorseOptions -> IO MorseOptions) -> [String] ->  (IO MorseOptions, [String], [String])
 processCommandInput argOrder arguments = (CL.processInput startOptions actions, extra, errors)
-    where (actions, extra, errors) = GetOpt.getOpt argOrder morseTxOptions arguments 
+    where (actions, extra, errors) = GetOpt.getOpt argOrder morseTxOptions arguments
 
 
 -- | Standalone version of the morse program. Called by yasdrr when mode is set
 --   to MorseTx. Closes output handle and exits the program if it encounters
 --   invalid command line options.
 morseTxMainIO :: [String] -> IO ()
-morseTxMainIO commandLineOptions = 
+morseTxMainIO commandLineOptions =
     case processCommandInput GetOpt.RequireOrder commandLineOptions of
-              
+
          -- Normal Execution Path
          (parserResults, [], []) -> do
-             
+
              executionSettings <- parserResults
-             
+
              let errorCheck = CL.validateOptions executionSettings [validateWpm, validateSampleRate]
-             
+
              CM.when (errorCheck /= []) (CL.programInputError errorCheck)
-             
-             hSetBinaryMode stdout True 
-             
+
+             hSetBinaryMode stdout True
+
              morseTxMain executionSettings
-             
+
              hSetBinaryMode stdout False
-             
+
              optionsOutputCloser executionSettings
-             
+
           -- Case triggered when the user supplies invalid input
          (_, _, errors) -> CL.programInputError errors
 
@@ -234,33 +240,33 @@ morseTxMain executionSettings = do
     textToEncode <- optionsInput executionSettings
 
     let morseSymbols = Morse.convertStringToMorseCode textToEncode
-    
+
     let sampleRate = optionsSampleRate executionSettings
-    
+
     let dotLength = Morse.wpmToDotLength (optionsWordsPerMinute executionSettings)
-    
+
     let frequency = optionsDotFrequency executionSettings
-    
+
     let outputFormat = case optionsOutputSignalFormat executionSettings of
-    
+
                         CL.SampleComplexDouble -> SIO.complexDoubleSerializer
-                        
+
                         CL.SampleComplexFloat  -> SIO.complexFloatSerializer
-                        
-                        -- Using a serializer wiht no division, even when that 
+
+                        -- Using a serializer wiht no division, even when that
                         -- division is one, so theoretically, the compilier should
                         -- have optimized the division out, had better performance.
                         CL.SampleComplexSigned16 -> SIO.complexSigned16SerializerOne
                         _ -> error "Unsupported serialization type"
-    
+
     let signalWriter = optionsOutputWriter executionSettings
-    
+
     let amplitude = optionsAmplitude executionSettings
-    
-    -- Performance testing sugested that putting the algorithm that generates 
-    -- the raw signal into this same file along with its output as a lazy byte 
+
+    -- Performance testing sugested that putting the algorithm that generates
+    -- the raw signal into this same file along with its output as a lazy byte
     -- string produced the best performance both in time and space complexity.
-    
+
     signalWriter $ BP.runPut $ generateMorseStream outputFormat sampleRate dotLength frequency amplitude morseSymbols
 
 
@@ -272,17 +278,17 @@ generateMorseStream serializer sampleRate dotLength frequency amplitude = mapM_ 
 
 -- | Takes a morse symbol and generates its corresponding signal using the supplied
 --   input parameters.
-generateMorseSymbol :: (Complex Double -> BP.Put) -> Double -> Double 
+generateMorseSymbol :: (Complex Double -> BP.Put) -> Double -> Double
                             -> Double -> Double -> Morse.MorseSymbol -> BP.Put
 generateMorseSymbol serializer sampleRate dotLength frequency amplitude symbol = mapM_ (serializer . generateMorseSample sampleRate frequency symAmplitude) [1 .. symLength]
-    
-    -- It seems wierd to have symbol lengths that are not integer in length. 
+
+    -- It seems wierd to have symbol lengths that are not integer in length.
     -- It could be done with interpolation, but that functionality does not
-    -- exist here. So the code is written to floor the symbol length to an 
+    -- exist here. So the code is written to floor the symbol length to an
     -- integer.
     where symLength = floor $ sampleRate * dotLength * case symbol of
-                                            Morse.MorseDot -> 1
-                                            Morse.MorseDash -> 3
+                                            Morse.MorseDot   -> 1
+                                            Morse.MorseDash  -> 3
                                             Morse.MorseSpace -> 1
           symAmplitude = if symbol == Morse.MorseSpace then 0.0 else amplitude
 

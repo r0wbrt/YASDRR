@@ -23,28 +23,32 @@ Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
 
 Maintainer  :  r0wbrt@gmail.com
-Stability   :  unstable 
-Portability :  portable 
+Stability   :  unstable
+Portability :  portable
 
 This program generates linear chirps for chirp based pulse compression radar.
 -}
-module Shared.ChirpTx where
+module Shared.ChirpTx
+    ( processCommandInput
+    , chirpTxMainIO
+    , chirpTxMain
+    ) where
 
 
 -- System imports
-import System.Console.GetOpt as GetOpt
-import System.IO
-import System.Exit
-import qualified Data.ByteString as B
-import qualified Control.Monad as CM
+import qualified Control.Monad         as CM
+import qualified Data.ByteString       as B
+import           System.Console.GetOpt as GetOpt
+import           System.Exit
+import           System.IO
 
 -- yasdrr imports
 import qualified YASDRR.SDR.ChirpRadar as Chirp
 
 -- yasdrr shared imports
-import qualified Shared.CommandLine as CL
-import qualified Shared.IO as SIO
-import qualified Shared.ChirpCommon as ChirpCommon
+import qualified Shared.ChirpCommon    as ChirpCommon
+import qualified Shared.CommandLine    as CL
+import qualified Shared.IO             as SIO
 
 -- | Process the command line input and populates the setting record.
 processCommandInput :: GetOpt.ArgOrder (ChirpCommon.ChirpOptions -> IO ChirpCommon.ChirpOptions) -> [String] ->  (IO ChirpCommon.ChirpOptions, [String], [String])
@@ -57,22 +61,22 @@ chirpTxMainIO :: [String] -> IO ()
 chirpTxMainIO arguments =
     case processCommandInput GetOpt.RequireOrder arguments of
         (programSettingsIO, [], []) -> do
-              
+
               programSettings <- programSettingsIO
-              
+
               let errorCheck = CL.validateOptions programSettings ChirpCommon.chirpRadarTxValidators
-             
+
               CM.when (errorCheck /= []) (CL.programInputError errorCheck)
-              
-              
-              hSetBinaryMode stdout True 
-              
+
+
+              hSetBinaryMode stdout True
+
               chirpTxMain programSettings
-              
-              hSetBinaryMode stdout False 
-              
+
+              hSetBinaryMode stdout False
+
               _ <- ChirpCommon.optCloseOutput programSettings
-              
+
               exitSuccess
         (_, _, errors) -> CL.programInputError errors
 
@@ -80,12 +84,12 @@ chirpTxMainIO arguments =
 -- | Chirp TX emebeded main entry.
 chirpTxMain :: ChirpCommon.ChirpOptions -> IO ()
 chirpTxMain programSettings = do
-    
+
     let chirpLength = ChirpCommon.calculateSignalLength programSettings
     let repetitions = ChirpCommon.optRepetitions programSettings
-    
+
     let outputFormat = ChirpCommon.optOutputSampleFormat programSettings
-    
+
     let chirpSettings = Chirp.ChirpRadarSettings
             { Chirp.optStartFrequency = ChirpCommon.optStartFrequency programSettings
             , Chirp.optEndFrequency = ChirpCommon.optEndFrequency programSettings
@@ -98,11 +102,11 @@ chirpTxMain programSettings = do
             , Chirp.optChirpWindow = ChirpCommon.optChirpWindow programSettings
             , Chirp.optSignalWindow = ChirpCommon.optSignalWindow programSettings
             }
-    
+
     let finalSignal = SIO.serializeOutput outputFormat $ Chirp.chirpTx chirpSettings
-    
+
     let writer = ChirpCommon.optOutputWriter programSettings
-    
+
     writeOutput writer finalSignal repetitions
 
 
@@ -110,8 +114,8 @@ chirpTxMain programSettings = do
 writeOutput :: (B.ByteString -> IO ()) -> B.ByteString -> Int -> IO ()
 writeOutput _ _ 0 = return ()
 writeOutput writer signal count = do
-    
+
     let newCount = if count /= -1 then count - 1 else -1
-    
+
     writer signal
-    writeOutput writer signal newCount 
+    writeOutput writer signal newCount

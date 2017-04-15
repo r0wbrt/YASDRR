@@ -23,21 +23,21 @@ Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
 
 Maintainer  :  r0wbrt@gmail.com
-Stability   :  unstable 
-Portability :  portable 
+Stability   :  unstable
+Portability :  portable
 -}
 
-module YASDRR.SDR.ChirpRadar (ChirpRadarSettings (..), 
-        SignalWindow (HammingWindow, NoWindow), chirpRx, chirpTx, generateChirp) where 
+module YASDRR.SDR.ChirpRadar (ChirpRadarSettings (..),
+        SignalWindow (HammingWindow, NoWindow), chirpRx, chirpTx, generateChirp) where
 
 -- System imports
-import Data.Complex
-import Data.Maybe
-import qualified Data.Vector.Unboxed as VUB
+import           Data.Complex
+import           Data.Maybe
+import qualified Data.Vector.Unboxed    as VUB
 
 -- yasdrr library imports
 import qualified YASDRR.DSP.Correlation as Cor
-import qualified YASDRR.DSP.Windows as Windows
+import qualified YASDRR.DSP.Windows     as Windows
 
 
 -- | Type of signal window
@@ -46,31 +46,31 @@ data SignalWindow = HammingWindow | NoWindow
 
 -- | Settings controlling the behavior of the chirp modules.
 data ChirpRadarSettings = ChirpRadarSettings
- { optStartFrequency :: Double
- , optEndFrequency :: Double
- , optFrequencyShift :: Double
- , optSampleRate :: Double
- , optRiseTime :: Double
- , optSilenceLength :: Int
+ { optStartFrequency        :: Double
+ , optEndFrequency          :: Double
+ , optFrequencyShift        :: Double
+ , optSampleRate            :: Double
+ , optRiseTime              :: Double
+ , optSilenceLength         :: Int
  , optSilenceTruncateLength :: Int
- , optAmplitude :: Double
- , optChirpWindow :: SignalWindow
- , optSignalWindow :: SignalWindow
- } 
+ , optAmplitude             :: Double
+ , optChirpWindow           :: SignalWindow
+ , optSignalWindow          :: SignalWindow
+ }
 
 
--- | Takes a ChirpRadarSettings record and then returns a function that 
+-- | Takes a ChirpRadarSettings record and then returns a function that
 --   can process a chirp radar return pulse.
-chirpRx :: ChirpRadarSettings -> 
+chirpRx :: ChirpRadarSettings ->
                     (VUB.Vector (Complex Double) -> VUB.Vector (Complex Double))
 chirpRx programSettings = compressReturn windowedChirp pulseWindow
     where chirpLength = optRiseTime programSettings
           silenceLength = optSilenceLength programSettings
-          
+
           windowedChirp = generateChirpUsingSettings programSettings {optAmplitude = 1.0}
-          
+
           pulseTruncationLength = optSilenceTruncateLength programSettings
-          
+
           pulseWindow = getPulseWindow (optSignalWindow programSettings) (floor chirpLength + silenceLength - pulseTruncationLength)
 
 
@@ -85,29 +85,29 @@ chirpTx programSettings = windowedChirp VUB.++ VUB.replicate silenceLength (0.0 
 generateChirpUsingSettings :: ChirpRadarSettings -> VUB.Vector (Complex Double)
 generateChirpUsingSettings programSettings = windowedChirp
     where sampleRate = optSampleRate programSettings
-          
+
           frequecyShift = optFrequencyShift programSettings
           startFrequency = frequecyShift +  optStartFrequency programSettings
           endFrequency = frequecyShift + optEndFrequency programSettings
-              
+
           amplitude = optAmplitude programSettings
-              
+
           chirpLength = optRiseTime programSettings
-              
-              
+
+
           normalizedChirp = generateChirp sampleRate startFrequency endFrequency chirpLength
-          window = getChirpWindow (optChirpWindow programSettings) $ floor chirpLength 
+          window = getChirpWindow (optChirpWindow programSettings) $ floor chirpLength
           adjustedChirp = VUB.map (\sample -> (amplitude :+ 0.0) * sample ) normalizedChirp
           windowedChirp = VUB.zipWith (\windowCoef sample -> (windowCoef :+ 0) * sample) window adjustedChirp
 
 
 -- | Compresses the a returned signal using a reference chirp signal, and a pulseWindow.
-compressReturn :: VUB.Vector (Complex Double) -> Maybe (VUB.Vector (Complex Double)) -> 
+compressReturn :: VUB.Vector (Complex Double) -> Maybe (VUB.Vector (Complex Double)) ->
                         VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
 compressReturn chirp pulseWindow signal = Cor.correlateV chirp windowedSignal
 
-    where windowedSignal = if isNothing pulseWindow then 
-                            signal 
+    where windowedSignal = if isNothing pulseWindow then
+                            signal
                                 else VUB.zipWith (*) (fromJust pulseWindow) signal
 
 
@@ -122,7 +122,7 @@ getPulseWindow window n = case window of
 getChirpWindow :: SignalWindow -> Int -> VUB.Vector Double
 getChirpWindow window n = case window of
                           HammingWindow -> Windows.hammingWindowV n
-                          NoWindow -> VUB.replicate n 1.0
+                          NoWindow      -> VUB.replicate n 1.0
 
 
 -- | Generates a linear chirp.

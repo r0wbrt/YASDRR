@@ -23,19 +23,44 @@ Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
 
 Maintainer  :  r0wbrt@gmail.com
-Stability   :  unstable 
-Portability :  portable 
+Stability   :  unstable
+Portability :  portable
 
 -}
 
-module Shared.CommandLine where
+module Shared.CommandLine
+    ( SampleFormat (..)
+    , ExecutionMode (..)
+    , processInput
+    , inputAbout
+    , commonAboutHandler
+    , inputHelp
+    , commonHelpHandler
+    , inputMode
+    , inputAmplitude
+    , inputFileOutput
+    , commonOutputFileHandler
+    , inputOutputSignalFormat
+    , inputInputSignalFormat
+    , inputSignalFormatHandler
+    , inputFileInput
+    , commonInputFileHandler
+    , inputSampleRate
+    , inputFrequencyShift
+    , inputMessage
+    , inputOutputMagnitude
+    , inputWpm
+    , programInputError
+    , validateOptions
+    , safeReader
+    ) where
 
-import System.Console.GetOpt as GetOpt
-import System.Environment
-import qualified Data.ByteString as B
-import qualified Data.Char as DChar
-import System.Exit 
-import System.IO
+import qualified Data.ByteString       as B
+import qualified Data.Char             as DChar
+import           System.Console.GetOpt as GetOpt
+import           System.Environment
+import           System.Exit
+import           System.IO
 
 
 -- | Sample format field.
@@ -49,16 +74,16 @@ data ExecutionMode = ChirpReceive | ChirpTransmit | MorseTransmit | ExecutionMod
 -- | Takes a list of functions and processes them into the final setting record.
 --   Includes side effects.
 processInput :: a -> [a -> IO a] -> IO a
-processInput startOptions = foldl (>>=) (return startOptions) 
+processInput startOptions = foldl (>>=) (return startOptions)
 
 
 -- | Handles the --about option.
 inputAbout :: (a -> IO a) -> OptDescr (a -> IO a)
-inputAbout handler  = GetOpt.Option shortOptionsNames longOptionNames (GetOpt.NoArg handler) description 
+inputAbout handler  = GetOpt.Option shortOptionsNames longOptionNames (GetOpt.NoArg handler) description
     where description = "Show about message"
           longOptionNames = ["about", "About"]
           shortOptionsNames = []
-          
+
 
 -- | Common about handler that can be used by other modules to display an about message
 --   to the end user.
@@ -69,12 +94,12 @@ commonAboutHandler options mode extraInfo _ = do
     exitSuccess
     where flag = case mode of
                     Just exMode -> " --mode="++exMode++" "
-                    Nothing -> ""
-              
+                    Nothing     -> ""
+
 
 -- | Handles the help input option.
 inputHelp :: (a -> IO a) -> OptDescr (a -> IO a)
-inputHelp handler = GetOpt.Option shortOptionsNames longOptionNames (GetOpt.NoArg handler) description 
+inputHelp handler = GetOpt.Option shortOptionsNames longOptionNames (GetOpt.NoArg handler) description
     where description = "Show this help message"
           longOptionNames = ["help", "Help"]
           shortOptionsNames = ['h']
@@ -85,16 +110,16 @@ inputHelp handler = GetOpt.Option shortOptionsNames longOptionNames (GetOpt.NoAr
 commonHelpHandler :: [OptDescr (a -> IO a)] -> Maybe String -> a -> IO a
 commonHelpHandler options mode _ = do
               prg <- getProgName
-              hPutStrLn stderr (GetOpt.usageInfo ("Usage: "++prg++""++flag++" [OPTIONS...]") options) 
+              hPutStrLn stderr (GetOpt.usageInfo ("Usage: "++prg++""++flag++" [OPTIONS...]") options)
               exitSuccess
     where flag = case mode of
                     Just exMode -> " --mode="++exMode++" "
-                    Nothing -> ""
+                    Nothing     -> ""
 
 
 -- | Handles the input mode command line flag.
 inputMode :: (ExecutionMode -> a -> IO a) -> OptDescr (a -> IO a)
-inputMode recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+inputMode recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description
     where description = "Mode of operation"
           longOptionNames = ["mode", "Mode"]
           shortOptionsNames = []
@@ -113,7 +138,7 @@ getModeFromString input = case map DChar.toUpper input of
 
 -- | Processes the amplitude command line flag into its actual value.
 inputAmplitude :: (Double -> a -> IO a) ->  OptDescr (a -> IO a)
-inputAmplitude recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+inputAmplitude recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description
     where description = "Amplitude of the chirp"
           longOptionNames = ["amplitude", "Amplitude"]
           shortOptionsNames = []
@@ -123,16 +148,16 @@ inputAmplitude recordHandler = GetOpt.Option shortOptionsNames longOptionNames (
 
 -- | Handles the file output option.
 inputFileOutput :: (String -> a -> IO a) -> OptDescr (a -> IO a)
-inputFileOutput handler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+inputFileOutput handler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description
     where description = "File to write output to"
           longOptionNames = ["output", "Output"]
           shortOptionsNames = []
           argExp = "FILE"
 
 
--- | Reusable function, which can be used by other modules, to handle opening files based on 
+-- | Reusable function, which can be used by other modules, to handle opening files based on
 --   command line input.
-commonOutputFileHandler :: String -> IO (B.ByteString -> IO (), IO ()) 
+commonOutputFileHandler :: String -> IO (B.ByteString -> IO (), IO ())
 commonOutputFileHandler input = do
     handle <- openBinaryFile input WriteMode
     return (B.hPut handle, hClose handle)
@@ -152,7 +177,7 @@ inputInputSignalFormat = inputSignalFormatHandler description ["signalInputForma
 
 -- | Handles the command line option that sets the input signal format.
 inputSignalFormatHandler :: String -> [String] -> (SampleFormat -> a -> IO a) -> OptDescr (a -> IO a)
-inputSignalFormatHandler description longOptionNames recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+inputSignalFormatHandler description longOptionNames recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description
     where shortOptionsNames = []
           argExp = "Double | Float | Signed16"
           handler input = recordHandler $ getSampleFormatFromString input
@@ -160,14 +185,14 @@ inputSignalFormatHandler description longOptionNames recordHandler = GetOpt.Opti
 
 -- | Command line option that sets the input file source.
 inputFileInput :: (String -> a -> IO a) -> OptDescr (a -> IO a)
-inputFileInput handler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+inputFileInput handler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description
     where description = "File to read input from"
           longOptionNames = ["input", "Input"]
           shortOptionsNames = []
           argExp = "FILE"
 
 
--- | Common function that takes a path and returns a reader function and 
+-- | Common function that takes a path and returns a reader function and
 --   closer function.
 commonInputFileHandler :: String -> IO (Int -> IO B.ByteString, IO ())
 commonInputFileHandler input = do
@@ -185,7 +210,7 @@ safeReader h size = do
         B.hGet h size
 
 
--- | Converts a string specifying the sample format into the actual 
+-- | Converts a string specifying the sample format into the actual
 --   SampleFormat type.
 getSampleFormatFromString :: String -> SampleFormat
 getSampleFormatFromString input = case map DChar.toUpper input of
@@ -197,7 +222,7 @@ getSampleFormatFromString input = case map DChar.toUpper input of
 
 -- | Handles the command line option that specifies the sample rate.
 inputSampleRate :: (Double -> a -> IO a) -> OptDescr (a -> IO a)
-inputSampleRate recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+inputSampleRate recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description
     where description = "Sample rate of signal"
           longOptionNames = ["sampleRate", "SampleRate"]
           shortOptionsNames = []
@@ -207,7 +232,7 @@ inputSampleRate recordHandler = GetOpt.Option shortOptionsNames longOptionNames 
 
 -- | Handles the command line option specifying the frequency shift.
 inputFrequencyShift :: (Double -> a -> IO a) -> OptDescr (a -> IO a)
-inputFrequencyShift recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+inputFrequencyShift recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description
     where description = "Frequency shift of the signal"
           longOptionNames = ["frequencyShift", "FrequencyShift"]
           shortOptionsNames = []
@@ -217,7 +242,7 @@ inputFrequencyShift recordHandler = GetOpt.Option shortOptionsNames longOptionNa
 
 -- | Handles the command line option that supplies a text message.
 inputMessage :: (String -> a -> IO a) -> OptDescr (a -> IO a)
-inputMessage handler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+inputMessage handler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description
     where description = "A text message to encode into morse code"
           longOptionNames = ["inputMessage", "InputMessage"]
           shortOptionsNames = []
@@ -234,7 +259,7 @@ inputOutputMagnitude handler = GetOpt.Option shortOptionsNames longOptionNames (
 
 -- | Handles the command line option that specifies the wpm
 inputWpm :: (Int -> a -> IO a) -> OptDescr (a -> IO a)
-inputWpm recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description 
+inputWpm recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description
     where description = "The number of words to transmit per minute"
           longOptionNames = ["wpm", "WPM"]
           shortOptionsNames = []

@@ -23,17 +23,21 @@ Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
 
 Maintainer  :  r0wbrt@gmail.com
-Stability   :  unstable 
-Portability :  portable 
+Stability   :  unstable
+Portability :  portable
 
-Several mathmatical functions used as primitives by other more complex 
+Several mathmatical functions used as primitives by other more complex
 operations in YASDRR tools library.
 -}
 
-module YASDRR.Math.Misc where
+module YASDRR.Math.Misc
+    ( discretePowerOf2
+    , getVectorMatrixRow
+    )
+    where
 
-import Data.Bits
-import qualified Data.Vector as VB
+import           Data.Bits
+import qualified Data.Vector         as VB
 import qualified Data.Vector.Unboxed as VUB
 
 --Converts a value to the nearest value of 2 assuming the value is a power of 2.

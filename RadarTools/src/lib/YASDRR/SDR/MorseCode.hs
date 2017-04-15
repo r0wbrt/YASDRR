@@ -24,31 +24,31 @@ Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
 
 Maintainer  :  r0wbrt@gmail.com
-Stability   :  unstable 
-Portability :  portable 
+Stability   :  unstable
+Portability :  portable
 
 Functionality used to generate morse code signals for identification purposes.
 -}
 
 
 module YASDRR.SDR.MorseCode
-        ( convertStringToMorseCode, 
+        ( convertStringToMorseCode,
           wpmToDotLength,
           MorseSymbol (MorseDot, MorseDash, MorseSpace)
-         ) where 
+         ) where
 
 
+import qualified Data.Char    as DChar
 import qualified Data.HashMap as Map
-import Data.Maybe
-import qualified Data.Char as DChar
+import           Data.Maybe
 
 
 data MorseSymbol = MorseDot | MorseDash | MorseSpace deriving (Show,Eq)
-          
-          
+
+
 -- | table of morse characters.
 letterTable :: [(Char, [MorseSymbol])]
-letterTable = 
+letterTable =
     [ ('A',[MorseDot, MorseDash])
     , ('B',[MorseDash, MorseDot, MorseDot, MorseDot])
     , ('C',[MorseDash, MorseDot, MorseDash, MorseDot])
@@ -91,45 +91,45 @@ letterTable =
     , ('=',[MorseDash, MorseDot, MorseDot, MorseDot, MorseDash])
     ]
 
-    
+
 -- | Table of special morse symbols, like the space between words.
 symbolTable :: [(Char, [MorseSymbol])]
-symbolTable = 
+symbolTable =
     [ (' ', [MorseSpace, MorseSpace, MorseSpace, MorseSpace]) ]
-    
-    
+
+
 -- | The actual hash map that maps chars to morse characters.
 morseMap :: Map.Map Char [MorseSymbol]
 morseMap = Map.union letterMap symbolMap
-    
+
     where letterMap = foldl insertIntoMap Map.empty (adjustLetterTable letterTable)
-          
+
           symbolMap = foldl insertIntoMap Map.empty symbolTable
-        
+
           insertIntoMap hMap (k, value) = Map.insert (DChar.toUpper k) value hMap
-          
+
           adjustLetterTable = map (\(k, value) -> (k, init $ insertLetterSpaces value))
-          
+
           insertLetterSpaces = concatMap (\symbol -> [symbol, MorseSpace])
-          
-          
+
+
 -- | Converts a list of chars (a string) into their equivalent morse code
 -- representation.
 convertStringToMorseCode :: String -> [MorseSymbol]
-convertStringToMorseCode input = 
+convertStringToMorseCode input =
     take (length (morseString sanitizedString) - 3) $ morseString sanitizedString
 
     where morseString = concatMap letterToMorse
-          
+
           sanitizedString = unwords $ words input
-        
+
           letterToMorse ' ' = fromJust (Map.lookup ' ' morseMap)
-          
-          letterToMorse c = 
+
+          letterToMorse c =
               fromJust (Map.lookup (DChar.toUpper c) morseMap)
                 ++ [MorseSpace, MorseSpace, MorseSpace]
-          
-          
+
+
 -- | Converts wpm to dot length as a fraction of a second.
 wpmToDotLength :: Int -> Double
 wpmToDotLength wpm = 1.2 / fromIntegral wpm

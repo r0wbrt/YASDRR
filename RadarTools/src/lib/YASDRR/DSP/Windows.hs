@@ -24,14 +24,18 @@ Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
 
 Maintainer  :  r0wbrt@gmail.com
-Stability   :  unstable 
-Portability :  portable 
+Stability   :  unstable
+Portability :  portable
 
-Functionality to generate signal widnows. 
+Functionality to generate signal widnows.
 -}
 
 
-module YASDRR.DSP.Windows where
+module YASDRR.DSP.Windows
+(
+ hammingWindowV
+)
+    where
 
 import qualified Data.Vector.Unboxed as VUB
 

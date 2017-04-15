@@ -23,38 +23,38 @@ Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
 
 Maintainer  :  r0wbrt@gmail.com
-Stability   :  unstable 
-Portability :  portable 
+Stability   :  unstable
+Portability :  portable
 
 -}
 
 module Shared.IO (
-                                            BinaryParserExceptions 
+                                            BinaryParserExceptions
                                                 ( DidNotExpectIncompleteData,
                                                     FailedWhileParsing,
                                                         UnhandledExtraInput),
             deserializeBlock, serializeBlock, blockListDeserializer,
             blockListSerializer, complexFloatSerializer,
-            complexFloatDeserializer, complexSigned16Serializer, 
+            complexFloatDeserializer, complexSigned16Serializer,
             complexSigned16SerializerOne, complexSigned16DeserializerOne,
             complexDoubleSerializer, serializeBlockV, complexDoubleMagSerializer,
             complexDoubleDeserializer, complexSigned16Deserializer, serializeOutput,
             complexFloatMagSerializer) where
 
 -- System imports
-import qualified Data.Binary.Get as BG
-import qualified Data.Binary.Put as BP
-import qualified Data.ByteString as B
+import           Control.Exception
+import qualified Control.Monad        as CM
+import qualified Data.Binary.Get      as BG
+import qualified Data.Binary.Put      as BP
+import qualified Data.ByteString      as B
 import qualified Data.ByteString.Lazy as BL
-import Data.Complex
-import GHC.Float
-import Control.Exception
-import Data.Typeable
-import qualified Data.Vector.Unboxed as VUB
-import qualified Control.Monad as CM
+import           Data.Complex
+import           Data.Typeable
+import qualified Data.Vector.Unboxed  as VUB
+import           GHC.Float
 
 --yasdrr shared imports
-import qualified Shared.CommandLine as CL
+import qualified Shared.CommandLine   as CL
 
 
 -- | Using the supplied sample format, converts a complex double vector into its
@@ -69,23 +69,23 @@ serializeOutput CL.SampleComplexToSigned16Mag signal = serializeBlockV complexSi
 
 
 -- | List of exceptions deserializeBlock can throw to consuming code.
-data BinaryParserExceptions = DidNotExpectIncompleteData String 
-                            | FailedWhileParsing String 
-                            | UnhandledExtraInput String  
+data BinaryParserExceptions = DidNotExpectIncompleteData String
+                            | FailedWhileParsing String
+                            | UnhandledExtraInput String
     deriving (Show, Typeable)
 instance Exception BinaryParserExceptions
 
 
--- |  Helper function for deserializing a block of data. 
+-- |  Helper function for deserializing a block of data.
 deserializationStreamProcessor :: BG.Get a -> [a] -> BG.Get [a]
 deserializationStreamProcessor decoder acc = do
-    
+
     noMoreData <- BG.isEmpty
 
     if noMoreData then
          return (reverse acc)
-         
-    else 
+
+    else
         do
             --Grab output
             sample <- decoder
@@ -94,50 +94,50 @@ deserializationStreamProcessor decoder acc = do
 
 -- | Converts a binary string into the requested data type.
 deserializeBlock :: BG.Get a -> B.ByteString -> ([a], B.ByteString)
-deserializeBlock decoder block = 
-        
+deserializeBlock decoder block =
+
     --Run the decoder and handle it three possible output.
     case BG.pushEndOfInput $ BG.pushChunk bgdecoder block of
-         
+
         --Something went wrong
         BG.Fail _ _ msg -> throw $ FailedWhileParsing msg
-        
+
         --Not all the data was passed in.
         BG.Partial _ -> throw $ DidNotExpectIncompleteData "Expected parsing to be complete, however decoder is still expecting more input"
-        
+
         --All data was passed in and decoded.
-        BG.Done extraData _ sampleSequence -> (sampleSequence, extraData)                                                
-        
+        BG.Done extraData _ sampleSequence -> (sampleSequence, extraData)
+
     where bgdecoder = BG.runGetIncremental (deserializationStreamProcessor decoder [])
- 
- 
+
+
 -- | Parses a list of types into a byte stream
 serializationStreamProcessor :: (a -> BP.Put) -> [a] -> BP.Put
 serializationStreamProcessor _ [] = return ()
 serializationStreamProcessor parser (x:xs) = do
-    parser x 
+    parser x
     serializationStreamProcessor parser xs
 
 
 -- | Converts a list of data into it associated ByteString type.
 serializeBlock :: (a -> BP.Put) -> [a] -> B.ByteString
 serializeBlock encoder block = BL.toStrict $ BP.runPut puter
-                                              
+
     where puter = serializationStreamProcessor encoder block
 
 
 -- | Converts a vector of data into its associated type.
 serializeBlockV :: (VUB.Unbox a) => (a -> BP.Put) -> VUB.Vector a -> B.ByteString
 serializeBlockV encoder block = BL.toStrict $ BP.runPut puter
-                                              
+
     where puter = serializationStreamProcessorV encoder block
 
 
 -- | Helper function for serializing a vector into a byte string.
 serializationStreamProcessorV :: (VUB.Unbox a) => (a -> BP.Put) -> VUB.Vector a -> BP.Put
 serializationStreamProcessorV parser vector = do
-    parser $ VUB.unsafeHead vector 
-    CM.when (VUB.length vector > 1) $ serializationStreamProcessorV parser (VUB.tail vector) 
+    parser $ VUB.unsafeHead vector
+    CM.when (VUB.length vector > 1) $ serializationStreamProcessorV parser (VUB.tail vector)
 
 
 -- | Takes an input bytestring and converts it into a list of blocks, where each
@@ -155,9 +155,9 @@ blockListDeserializer decoder size = do
 blockListSerializer :: (a -> BP.Put) -> [a] -> BP.Put
 blockListSerializer _ [] = return ()
 blockListSerializer encoder input = do
-    
+
     encoder (head input)
-    
+
     blockListSerializer encoder (tail input)
 
 
@@ -178,7 +178,7 @@ complexSigned16Serializer :: Double -> Complex Double -> BP.Put
 complexSigned16Serializer base (real :+ imaginary) = do
     BP.putInt16host $ convertNumber real
     BP.putInt16host $ convertNumber imaginary
-    
+
     where convertNumber number = floor $ signum number * abs (minimum [ 32767.0 * number / base, 32767.0])
 
 
@@ -188,29 +188,29 @@ complexSigned16SerializerOne :: Complex Double -> BP.Put
 complexSigned16SerializerOne (real :+ imaginary) = do
     BP.putInt16host $ convertNumber real
     BP.putInt16host $ convertNumber imaginary
-    
+
     where convertNumber number = floor $ signum number * abs (minimum [ 32767.0 * number, 32767.0])
 
 
 -- | Serializes a complex double list into a list of squared complex signed 16 magnitudes |z|^2.
 complexSigned16MagSerializerOne :: Complex Double -> BP.Put
 complexSigned16MagSerializerOne (real :+ imaginary) = BP.putInt16host $ convertNumber $ real*real + imaginary*imaginary
-    
+
     where convertNumber number = floor $ signum number * abs (minimum [ 32767.0 * number, 32767.0])
 
 
 -- | Deserializes a complex signed 16 into a complex double using a base of 1.
 complexSigned16DeserializerOne :: BG.Get (Complex Double)
 complexSigned16DeserializerOne = do
-    
+
     --First parse the data from the stream
     real <- BG.getWord16le
     imaginary <- BG.getWord16le
-    
+
     --Next scale the data accordingly
     let realD = fromIntegral real / 32768.0
     let imagD = fromIntegral imaginary / 32768.0
-    
+
     --Return the result.
     return (realD :+ imagD)
 
@@ -218,7 +218,7 @@ complexSigned16DeserializerOne = do
 -- | Serializes a complex float.
 complexFloatSerializer :: Complex Double -> BP.Put
 complexFloatSerializer (real :+ imaginary) = do
-    
+
     BP.putFloatle (double2Float real)
     BP.putFloatle (double2Float imaginary)
 
@@ -231,34 +231,34 @@ complexFloatMagSerializer (real :+ imaginary) = BP.putFloatle $ double2Float (re
 -- | Deserializes a complex float.
 complexFloatDeserializer :: BG.Get (Complex Double)
 complexFloatDeserializer = do
-    
-    real <- BG.getFloatle 
+
+    real <- BG.getFloatle
     imaginary <- BG.getFloatle
-    
+
     return (float2Double real :+ float2Double imaginary)
 
 
 -- | Deserializes a complex double
 complexDoubleDeserializer :: BG.Get (Complex Double)
 complexDoubleDeserializer = do
-    
-    real <- BG.getDoublele 
+
+    real <- BG.getDoublele
     imaginary <- BG.getDoublele
-    
+
     return (real :+ imaginary)
 
 
 -- | Serializes a complex double to a signed 16 using an arbitrary base.
 complexSigned16Deserializer :: Double -> BG.Get (Complex Double)
 complexSigned16Deserializer base = do
-    
+
     --First parse the data from the stream
     real <- BG.getWord16le
     imaginary <- BG.getWord16le
-    
+
     --Next scale the data accordingly
     let realD = (fromIntegral real * base) / 32768.0
     let imagD = (fromIntegral imaginary * base) / 32768.0
-    
+
     --Return the result.
     return (realD :+ imagD)

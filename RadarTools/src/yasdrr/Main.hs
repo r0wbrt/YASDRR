@@ -23,36 +23,36 @@ Copyright   :  (c) Robert C. Taylor
 License     :  Apache 2.0
 
 Maintainer  :  r0wbrt@gmail.com
-Stability   :  unstable 
-Portability :  portable 
+Stability   :  unstable
+Portability :  portable
 
 -}
 
 -- | System imports
-import System.Environment
-import System.IO
-import System.Exit
-import System.Console.GetOpt as GetOpt
-import qualified Control.Monad as CM
+import qualified Control.Monad         as CM
+import           System.Console.GetOpt as GetOpt
+import           System.Environment
+import           System.Exit
+import           System.IO
 
 -- Yasdrr shared imports
-import qualified Shared.CommandLine as CL
-import qualified Shared.ChirpRx as ChirpRx
-import qualified Shared.ChirpTx as ChirpTx
-import qualified Shared.MorseTx as MorseTx
+import qualified Shared.ChirpRx        as ChirpRx
+import qualified Shared.ChirpTx        as ChirpTx
+import qualified Shared.CommandLine    as CL
+import qualified Shared.MorseTx        as MorseTx
 
 
 -- | Record that represents the options of yasdrr
-data ProgramOptions = ProgramOptions 
- { optExecutionMode :: CL.ExecutionMode 
- , optHelpMessageRequested :: Bool
+data ProgramOptions = ProgramOptions
+ { optExecutionMode         :: CL.ExecutionMode
+ , optHelpMessageRequested  :: Bool
  , optAboutMessageRequested :: Bool
  }
 
 
  -- | Default options for yasdrr executable
-startOptions :: ProgramOptions 
-startOptions = ProgramOptions 
+startOptions :: ProgramOptions
+startOptions = ProgramOptions
  { optExecutionMode = CL.ExecutionModeNotSet
  , optHelpMessageRequested = False
  , optAboutMessageRequested = False
@@ -61,7 +61,7 @@ startOptions = ProgramOptions
 
  -- | Starting command line options for the yasdrr executable
 commandLineOptions :: [OptDescr (ProgramOptions -> IO ProgramOptions)]
-commandLineOptions = 
+commandLineOptions =
  [ CL.inputMode (\mode opt -> return $ opt { optExecutionMode = mode })
  , CL.inputAbout (\opt -> return $ opt { optAboutMessageRequested = True })
  , CL.inputHelp (\opt -> return $ opt {optHelpMessageRequested = True })
@@ -76,27 +76,27 @@ main = do
     case GetOpt.getOpt' GetOpt.Permute commandLineOptions arguments of
          (actions, [], extras, []) -> do
             programOptions <- CL.processInput startOptions actions
-            
+
             let finalCommandInput = makeFinalCommandInputString extras (optHelpMessageRequested programOptions) (optAboutMessageRequested programOptions)
 
-            
+
             _ <- case optExecutionMode programOptions of
                  CL.ExecutionModeNotSet -> do
                      CM.when (optHelpMessageRequested programOptions) mainHelp
                      CM.when (optAboutMessageRequested programOptions) mainAbout
                      hPutStrLn stderr "Mode Must be specified"
                      exitFailure
-                 CL.ChirpReceive -> 
+                 CL.ChirpReceive ->
                      ChirpRx.chirpRxMainIO finalCommandInput
-                 CL.ChirpTransmit -> 
+                 CL.ChirpTransmit ->
                      ChirpTx.chirpTxMainIO finalCommandInput
-                 CL.MorseTransmit -> 
+                 CL.MorseTransmit ->
                      MorseTx.morseTxMainIO finalCommandInput
                  _ -> do
                      hPutStrLn stderr "Execution mode supplied was invalid"
                      exitFailure
-                 
-                     
+
+
             exitSuccess
          (_, _, _, errors) -> do
             hPutStrLn stderr $ unlines $ ["Invalid input supplied"] ++ errors
@@ -113,13 +113,13 @@ makeFinalCommandInputString options False False = options
 
 -- | Generates a help message for the base yasdrr program.
 mainHelp :: IO ()
-mainHelp = do 
+mainHelp = do
     _ <- CL.commonHelpHandler commandLineOptions Nothing startOptions
     return ()
 
 
 -- | Generates the about message for the base yasdrr program
 mainAbout :: IO ()
-mainAbout = do 
+mainAbout = do
     _ <- CL.commonAboutHandler commandLineOptions Nothing "" startOptions
     return ()

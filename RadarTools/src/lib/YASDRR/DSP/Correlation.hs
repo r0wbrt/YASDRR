@@ -31,10 +31,30 @@ Contains several useful functions to calculate the correlation of two complex
 number sequences.
 -}
 
-module YASDRR.DSP.Correlation (correlate, correlateV) where
+module YASDRR.DSP.Correlation
+    (
+      correlate
+    , correlateV
+    , correlateFFIV
+    )  where
 
 import           Data.Complex
-import qualified Data.Vector.Unboxed as VUB
+import qualified Data.Vector.Storable  as VST
+import qualified Data.Vector.Unboxed   as VUB
+import           Foreign.ForeignPtr    (newForeignPtr, withForeignPtr)
+import           Foreign.Marshal.Alloc (finalizerFree, mallocBytes)
+import           Foreign.Ptr           (Ptr)
+import           Foreign.Storable      (sizeOf)
+import           System.IO.Unsafe      (unsafeDupablePerformIO)
+
+
+foreign import ccall unsafe "complexCorrelate" c_correlation ::
+        Int
+    ->  Int
+    ->  Ptr (Complex Double)
+    ->  Ptr (Complex Double)
+    ->  Ptr (Complex Double)
+    ->  IO ()
 
 -- | Vector based correlation using complex numbers.
 correlateV :: VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
@@ -55,6 +75,7 @@ correlate impulse signal = map loopFunction [0..(length signal - 1)]
           loopFunction = correlateLoop conjImpulse signalArray (length signal) 0
           signalArray = VUB.fromList signal
 
+
 --Correlation accumulator loop, written based on profiling data
 correlateLoop :: [Complex Double] -> VUB.Vector (Complex Double) -> Int
                         -> Complex Double -> Int -> Complex Double
@@ -64,3 +85,26 @@ correlateLoop impulse signal signalSize acc offset
     | otherwise = acc `seq` correlateLoop (tail impulse) signal signalSize
                     ( ( VUB.unsafeIndex signal offset * head impulse ) + acc)
                     (offset + 1)
+
+
+-- | Does complex correlation via an external FFI C call.
+{-# NOINLINE correlateFFIV #-}
+correlateFFIV :: VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
+                    -> VUB.Vector (Complex Double)
+correlateFFIV impulse pulse = unsafeDupablePerformIO $ do
+
+    outputPtr <- mallocBytes $ sizeOf(undefined::Complex Double) * pulseSize
+
+    _ <- withForeignPtr pulsePtr (\pulseRawPtr ->
+        withForeignPtr impulsePtr (\impulseRawPtr ->
+            c_correlation impulseSize pulseSize impulseRawPtr pulseRawPtr outputPtr))
+
+    outputForeignPtr <- newForeignPtr finalizerFree outputPtr
+
+    return $ VUB.convert $ VST.unsafeFromForeignPtr0 outputForeignPtr pulseSize
+
+    where pulsePtr = fst $ VST.unsafeToForeignPtr0 $ VST.convert pulse
+          impulsePtr = fst $ VST.unsafeToForeignPtr0 $ VST.convert impulse
+          impulseSize = VUB.length impulse
+          pulseSize = VUB.length pulse
+

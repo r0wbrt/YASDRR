@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                YASDRR
-version:             17.04.15
+version:             17.04.18
 synopsis:            Functionality to perform chirp radar processing 
 description:         This library and associated executables provides functionality to perform chirp pulse compression based radar.
 license:             Apache
@@ -16,13 +16,30 @@ category:            Digital Signal Processing
 build-type:          Simple
 cabal-version:       >=1.10
 
+flag opt-fastc
+     Description: Turn on all C optimizations including dangerous ones such as -ffast-math
+     Default: False
+     Manual: True
+
+flag opt-native
+     Description: Makes GCC compile code suited for the framework of your processor. This is enabled by default.
+     Default: True
+     Manual: True
+
 
 library
-    build-depends:    base, vector, unagi-chan, array, bytestring, binary >= 0.8.4.1, hashmap
+    build-depends:    base, vector, array, bytestring, binary >= 0.8.4.1, hashmap
     default-language: Haskell2010
-    ghc-options:      -Wall -Werror -O2 -optc-O3
+    ghc-options:      -Wall -Werror
+    
+    if flag(opt-fastc)
+        cc-options: -march=native -O3 -ffast-math
+        
+    if flag(opt-native)
+        cc-options: -march=native -O3
+        
     hs-source-dirs:   src/lib
-    c-sources: src/lib/YASDRR/DSP/FFT.c
+    c-sources: src/lib/YASDRR/DSP/FFT.c src/lib/YASDRR/DSP/Correlation.c
     exposed-modules:  YASDRR.DSP.FFT
                       YASDRR.DSP.Correlation
                       YASDRR.Math.Misc
@@ -92,7 +109,14 @@ test-suite hlint
   
 executable             yasdrr
   main-is:             Main.hs
-  ghc-options:      -Wall -Werror -O2 -optc-O3
+  ghc-options:      -Wall -Werror
+
+  if flag(opt-fastc)
+        cc-options: -march=native -O3 -ffast-math
+        
+  if flag(opt-native)
+        cc-options: -march=native -O3
+
   build-depends:
     base,
     YASDRR,

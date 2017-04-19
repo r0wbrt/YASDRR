@@ -104,7 +104,7 @@ generateChirpUsingSettings programSettings = windowedChirp
 -- | Compresses the a returned signal using a reference chirp signal, and a pulseWindow.
 compressReturn :: VUB.Vector (Complex Double) -> Maybe (VUB.Vector (Complex Double)) ->
                         VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
-compressReturn chirp pulseWindow signal = Cor.correlateV chirp windowedSignal
+compressReturn chirp pulseWindow signal = Cor.correlateFFIV chirp windowedSignal
 
     where windowedSignal = if isNothing pulseWindow then
                             signal

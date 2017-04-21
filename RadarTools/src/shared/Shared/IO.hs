@@ -39,7 +39,7 @@ module Shared.IO (
             complexSigned16SerializerOne, complexSigned16DeserializerOne,
             complexDoubleSerializer, serializeBlockV, complexDoubleMagSerializer,
             complexDoubleDeserializer, complexSigned16Deserializer, serializeOutput,
-            complexFloatMagSerializer) where
+            complexFloatMagSerializer, deserializeInput) where
 
 -- System imports
 import           Control.Exception
@@ -66,6 +66,17 @@ serializeOutput CL.SampleComplexSigned16 signal = serializeBlockV complexSigned1
 serializeOutput CL.SampleComplexToDoubleMag signal = serializeBlockV complexDoubleMagSerializer signal
 serializeOutput CL.SampleComplexToFloatMag signal = serializeBlockV complexFloatMagSerializer signal
 serializeOutput CL.SampleComplexToSigned16Mag signal = serializeBlockV complexSigned16MagSerializerOne signal
+
+
+
+deserializeInput :: CL.SampleFormat -> B.ByteString -> VUB.Vector (Complex Double)
+deserializeInput sampleFormat bString = VUB.fromList $ fst $ deserializeBlock decoder bString
+    where decoder = case sampleFormat of
+                        CL.SampleComplexDouble -> complexDoubleDeserializer
+                        CL.SampleComplexFloat -> complexFloatDeserializer
+                        CL.SampleComplexSigned16 -> complexSigned16DeserializerOne
+                        _ -> error "Sample format not supported"
+
 
 
 -- | List of exceptions deserializeBlock can throw to consuming code.

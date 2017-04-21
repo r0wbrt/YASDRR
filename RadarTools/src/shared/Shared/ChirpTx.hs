@@ -51,7 +51,9 @@ import qualified Shared.CommandLine    as CL
 import qualified Shared.IO             as SIO
 
 -- | Process the command line input and populates the setting record.
-processCommandInput :: GetOpt.ArgOrder (ChirpCommon.ChirpOptions -> IO ChirpCommon.ChirpOptions) -> [String] ->  (IO ChirpCommon.ChirpOptions, [String], [String])
+processCommandInput :: GetOpt.ArgOrder (ChirpCommon.ChirpOptions ->
+                        IO ChirpCommon.ChirpOptions) -> [String] ->
+                         (IO ChirpCommon.ChirpOptions, [String], [String])
 processCommandInput argOrder arguments = (CL.processInput ChirpCommon.startOptions actions, extra, errors)
     where (actions, extra, errors) = GetOpt.getOpt argOrder ChirpCommon.chirpRadarTxOptions arguments
 

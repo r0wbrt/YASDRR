@@ -79,7 +79,7 @@ else
     bladeRF-cli -e "rx config file=$rxFIFOPath format=bin n=$[$repetitions * ($silenceLength+$riseSamples)] timeout=60s; tx config file=$txFIFOPath format=bin timeout=60s; set samplerate $sampleRate; set bandwidth $sampleRate; set frequency rx $2; set frequency tx $2; set txvga1 -4; set txvga2 25; set lnagain 6; set rxvga1  30; set rxvga2  30; trigger j71-4 tx master; trigger j71-4 rx slave; rx start; tx start; rx; tx; trigger j71-4 tx fire; tx wait; rx wait;" &
 fi
 
-cat $rxFIFOPath | yasdrr --mode="chirpRx" --startFrequency=$startFrequency --endFrequency=$endFrequency --sampleRate=$sampleRate --riseSamples=$riseSamples --silenceLength=$silenceLength --output=$1 --signalInputFormat=signed16 --chirpWindow=$chirpWindow --pulseWindow=$chirpWindow --outputAsMagnitude &
+cat $rxFIFOPath | yasdrr --mode="chirpRx" --startFrequency=$startFrequency --endFrequency=$endFrequency --sampleRate=$sampleRate --riseSamples=$riseSamples --silenceLength=$silenceLength --output=$1 --signalInputFormat=signed16 --chirpWindow=$chirpWindow --pulseWindow=$chirpWindow --outputAsMagnitude +RTS -N2  &
 
 echo "Waiting for programs to finish..."
 

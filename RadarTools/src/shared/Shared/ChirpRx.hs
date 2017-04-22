@@ -141,7 +141,7 @@ processData signalProcessor signalReader signalWriter actions = do
     fileBlockWrapper <- signalReader
     case fileBlockWrapper of
          Right fileBlock -> Async.async (signalProcessor fileBlock) >>= (\newAction -> processData signalProcessor signalReader signalWriter $ tail actions ++ [newAction])
-         Left _ -> mapM_ (writeAsyncResult signalWriter) actions
+         Left _ -> mapM_ (writeAsyncResult signalWriter) (tail actions)
 
 
 -- | Waits for an Async expression to return and writes it to the file.

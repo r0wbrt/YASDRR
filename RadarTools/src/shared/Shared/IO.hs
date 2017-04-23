@@ -52,15 +52,16 @@ import           Data.Complex
 import           Data.Typeable
 import qualified Data.Vector.Unboxed  as VUB
 import           GHC.Float
-import           Foreign.ForeignPtr    (newForeignPtr, newForeignPtr_, castForeignPtr)
+import           Foreign.ForeignPtr    (newForeignPtr) --, newForeignPtr_, castForeignPtr, withForeignPtr)
 import           Foreign.Marshal.Alloc (finalizerFree, mallocBytes)
-import           Foreign.Ptr           (Ptr)
+import           Foreign.Ptr           (Ptr, castPtr)
 import           Foreign.Storable      (sizeOf)
 import           System.IO.Unsafe      (unsafeDupablePerformIO)
-import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
+-- import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import qualified Data.Vector.Storable  as VST
 import           Foreign.C.String (CString)
-
+ -- import           Foreign.Storable (peekElemOff)
+import Foreign.Marshal.Utils (copyBytes)
 --yasdrr shared imports
 import qualified Shared.CommandLine   as CL
 
@@ -89,13 +90,19 @@ foreign import ccall unsafe "convertFloatArrayToDoubleArray" c_complexFloatArray
     ->  Int
     ->  IO ()
 
-
+{-# NOINLINE deserializeInput #-}
 deserializeInput :: CL.SampleFormat -> B.ByteString -> VUB.Vector (Complex Double)
 deserializeInput CL.SampleComplexDouble bs = unsafeDupablePerformIO $ do
-        bsPtr <- unsafeUseAsCStringLen bs ( \(src, _) -> return src)
-        fPtr <- newForeignPtr_ bsPtr
-        return $ VUB.convert $ VST.unsafeFromForeignPtr0 (castForeignPtr fPtr) arrayLength
-    where arrayLength = quot (B.length bs) (sizeOf(undefined::Complex Double) )
+        B.useAsCStringLen bs $ \(bsPtr, _) -> do
+            
+            outputPtr <- mallocBytes (sizeOf(undefined::Complex Double) * arrayLength)
+            
+            copyBytes (castPtr outputPtr) bsPtr (B.length bs)
+            
+            outputForeignPtr <- newForeignPtr finalizerFree outputPtr
+            return $! VUB.convert $ VST.unsafeFromForeignPtr0 outputForeignPtr arrayLength
+
+    where arrayLength = quot (B.length bs) 16
 
 deserializeInput CL.SampleComplexFloat bs = unsafeDupablePerformIO action
     where action = deserializeInputHelper arrayLengthBytes arrayLength bs c_complexFloatArrayToComplexDoubleArray
@@ -117,7 +124,7 @@ deserializeInputHelper arrayLengthBytes arrayLength bs cFunc = do
 
         outputPtr <- mallocBytes arrayLengthBytes
         
-        unsafeUseAsCStringLen bs $ do (\(src, _) -> cFunc src outputPtr (2*arrayLength))
+        B.useAsCStringLen bs $ do (\(src, _) -> cFunc src outputPtr (2*arrayLength))
         
         outputForeignPtr <- newForeignPtr finalizerFree outputPtr
         

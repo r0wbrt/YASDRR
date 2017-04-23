@@ -156,7 +156,7 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
           signalLengthBytes = signalLength * sampleSize
           truncationLengthBytes = sampleSize * pulseTruncationLength
 
-          deserializer bString = SIO.deserializeInput sampleFormat bString  -- VUB.fromList $ fst $ SIO.deserializeBlock decoder bString -- 
+          deserializer bString = SIO.deserializeInput sampleFormat bString  -- VUB.fromList $ fst $ SIO.deserializeBlock decoder bString --
             --where decoder = case sampleFormat of
               --                  CL.SampleComplexDouble -> SIO.complexDoubleDeserializer
                 --                CL.SampleComplexFloat -> SIO.complexFloatDeserializer

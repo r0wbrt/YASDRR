@@ -156,9 +156,4 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
           signalLengthBytes = signalLength * sampleSize
           truncationLengthBytes = sampleSize * pulseTruncationLength
 
-          deserializer bString = SIO.deserializeInput sampleFormat bString  -- VUB.fromList $ fst $ SIO.deserializeBlock decoder bString --
-            --where decoder = case sampleFormat of
-              --                  CL.SampleComplexDouble -> SIO.complexDoubleDeserializer
-                --                CL.SampleComplexFloat -> SIO.complexFloatDeserializer
-                  --              CL.SampleComplexSigned16 -> SIO.complexSigned16DeserializerOne
-                    --            _ -> error "Sample format not supported"
+          deserializer = SIO.deserializeInput sampleFormat

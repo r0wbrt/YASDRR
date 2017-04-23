@@ -39,6 +39,7 @@ module Shared.IO
         , serializeBlock
         , blockListDeserializer
         , blockListSerializer
+        , complexSigned16MagSerializerOne
         , complexFloatSerializer
         , complexFloatDeserializer
         , complexSigned16Serializer
@@ -54,7 +55,6 @@ module Shared.IO
         , deserializeInput
         ) where
 
--- System imports
 import           Control.Exception
 import qualified Control.Monad          as CM
 import qualified Data.Binary.Get        as BG
@@ -67,31 +67,27 @@ import           Data.Complex
 import           Data.Typeable
 import qualified Data.Vector.Storable   as VST
 import qualified Data.Vector.Unboxed    as VUB
-import           Foreign.C.String       (CString)
-import           Foreign.ForeignPtr     (newForeignPtr, withForeignPtr)
-import           Foreign.Marshal.Alloc  (allocaBytes, finalizerFree, free,
-                                         mallocBytes)
-import           Foreign.Marshal.Utils  (copyBytes)
-import           Foreign.Ptr            (Ptr, castPtr)
-import           Foreign.Storable       (sizeOf)
-import           Foreign.Storable       (peekElemOff)
-import           GHC.Float
-import           System.IO.Unsafe       (unsafeDupablePerformIO)
---yasdrr shared imports
 import           Data.Word
+import           Foreign.C.String       (CString)
+import           Foreign.ForeignPtr     (withForeignPtr)
+import           Foreign.Marshal.Alloc  (allocaBytes, free, mallocBytes)
+import           Foreign.Ptr            (Ptr, castPtr)
+import           Foreign.Storable       (peekElemOff, sizeOf)
+import           GHC.Float
 import qualified Shared.CommandLine     as CL
+import           System.IO.Unsafe       (unsafeDupablePerformIO)
 
 -- | Using the supplied sample format, converts a complex double vector into its
 --   associated bytestring.
 serializeOutput :: CL.SampleFormat -> VUB.Vector (Complex Double) -> B.ByteString
-serializeOutput CL.SampleComplexDouble signal = runCBasedSerializer (sizeOf(undefined::Complex Double)) c_convertComplexDoubleArrayToComplexDoubleArray signal 
-serializeOutput CL.SampleComplexFloat signal = runCBasedSerializer (sizeOf(undefined::Complex Float)) c_convertComplexDoubleArrayToComplexFloatArray signal 
+serializeOutput CL.SampleComplexDouble signal = runCBasedSerializer (sizeOf(undefined::Complex Double)) c_convertComplexDoubleArrayToComplexDoubleArray signal
+serializeOutput CL.SampleComplexFloat signal = runCBasedSerializer (sizeOf(undefined::Complex Float)) c_convertComplexDoubleArrayToComplexFloatArray signal
 serializeOutput CL.SampleComplexSigned16 signal =  runCBasedSerializer (sizeOf(undefined::Word32)) c_convertComplexDoubleArrayToComplexSigned16 signal
 serializeOutput CL.SampleComplexToDoubleMag signal = runCBasedSerializer (sizeOf(undefined::Double)) c_convertComplexDoubleArrayToDoubleMag signal
 serializeOutput CL.SampleComplexToFloatMag signal = runCBasedSerializer (sizeOf(undefined::Float)) c_convertComplexDoubleArrayToFloatMag signal
 serializeOutput CL.SampleComplexToSigned16Mag signal = runCBasedSerializer (sizeOf(undefined::Word16)) c_convertComplexDoubleArrayToSigned16Mag signal
 
-
+-- | Converts a signed 16 array a double array. Note, the size must be doubled.
 foreign import ccall unsafe "convertSigned16ArrayToDoubleArray" c_signed16ArrayToComplexDoubleArray ::
         CString
     ->  Ptr (Complex Double)
@@ -99,6 +95,7 @@ foreign import ccall unsafe "convertSigned16ArrayToDoubleArray" c_signed16ArrayT
     ->  IO ()
 
 
+-- | Converts a float array to a double array. Note, size must be doubled.
 foreign import ccall unsafe "convertFloatArrayToDoubleArray" c_complexFloatArrayToComplexDoubleArray ::
         CString
     ->  Ptr (Complex Double)
@@ -106,50 +103,61 @@ foreign import ccall unsafe "convertFloatArrayToDoubleArray" c_complexFloatArray
     ->  IO ()
 
 
+-- | Converts a complex double array to an array of magnitudes.
 foreign import ccall unsafe "convertComplexDoubleArrayToDoubleMag" c_convertComplexDoubleArrayToDoubleMag ::
         Ptr (Complex Double)
-    ->  Ptr (Double)
+    ->  Ptr Double
     ->  Int
     ->  IO ()
 
 
+-- | Converts a complex double array to an array of magnitudes stored as floats.
 foreign import ccall unsafe "convertComplexDoubleArrayToFloatMag" c_convertComplexDoubleArrayToFloatMag ::
         Ptr (Complex Double)
-    ->  Ptr (Float)
+    ->  Ptr Float
     ->  Int
     ->  IO ()
 
 
+-- | Converts an array of complex doubles to an array to an array of their
+--   magnitudes and stores them as a signed 16 values.
 foreign import ccall unsafe "convertComplexDoubleArrayToSigned16Mag" c_convertComplexDoubleArrayToSigned16Mag ::
         Ptr (Complex Double)
-    ->  Ptr (Word16)
+    ->  Ptr Word16
     ->  Int
     ->  IO ()
 
+
+-- | Converts a complex double array to a complex float array.
 foreign import ccall unsafe "convertComplexDoubleArrayToComplexFloatArray" c_convertComplexDoubleArrayToComplexFloatArray ::
         Ptr (Complex Double)
     ->  Ptr (Complex Float)
     ->  Int
     ->  IO ()
 
+
+-- | Converts a complex double array to a complex signed 16 array using saturation
+--  arithmetic.
 foreign import ccall unsafe "convertComplexDoubleArrayToComplexSigned16" c_convertComplexDoubleArrayToComplexSigned16 ::
         Ptr (Complex Double)
-    ->  Ptr (Word16)
+    ->  Ptr Word16
     ->  Int
     ->  IO ()
 
+-- | Makes a copy of a complex double array.
 foreign import ccall unsafe "convertComplexDoubleArrayToComplexDoubleArray" c_convertComplexDoubleArrayToComplexDoubleArray ::
         Ptr (Complex Double)
     ->  Ptr (Complex Double)
     ->  Int
     ->  IO ()
 
-
+-- | Runs a C Based serializer that converts a Complex Double Unboxed Vector
+--   into a ByteString.
 {-# NOINLINE runCBasedSerializer #-}
 runCBasedSerializer :: Int -> (Ptr (Complex Double)
     ->  Ptr a
     ->  Int
-    ->  IO ()) -> VUB.Vector (Complex Double) -> (B.ByteString)
+    ->  IO ()) -> VUB.Vector (Complex Double) -> B.ByteString
 runCBasedSerializer typeSize c_func signal = unsafeDupablePerformIO $ do
         outputPtr <- mallocBytes arraySize
         withForeignPtr sourcePtr $ \sPtr -> do
@@ -157,17 +165,17 @@ runCBasedSerializer typeSize c_func signal = unsafeDupablePerformIO $ do
             unsafePackCStringFinalizer (castPtr outputPtr) arraySize (free outputPtr)
 
     where sourcePtr = fst $ VST.unsafeToForeignPtr0 $ VST.convert signal
-          arraySize = typeSize * (VUB.length signal)
+          arraySize = typeSize * VUB.length signal
 
-
+-- | Deserializes a ByteString into a complex double vector. Note, only supports
+--   deserializing complex types. Magnitude types are not supported.
 {-# NOINLINE deserializeInput #-}
 deserializeInput :: CL.SampleFormat -> B.ByteString -> VUB.Vector (Complex Double)
-deserializeInput CL.SampleComplexDouble bs = unsafeDupablePerformIO $ do
-        unsafeUseAsCStringLen bs $ \(bsPtr, _) -> do
+deserializeInput CL.SampleComplexDouble bs = unsafeDupablePerformIO $
+        unsafeUseAsCStringLen bs $ \(bsPtr, _) ->
+            return $! VUB.generate arrayLength (unsafeDupablePerformIO . peekElemOff (castPtr bsPtr))
 
-            return $! VUB.generate (arrayLength) (\pos -> unsafeDupablePerformIO $ peekElemOff (castPtr bsPtr) pos)
-
-    where arrayLength = quot (B.length bs) 16
+    where arrayLength = quot (B.length bs) (sizeOf(undefined::Complex Double))
 
 
 deserializeInput CL.SampleComplexFloat bs = unsafeDupablePerformIO action
@@ -177,21 +185,23 @@ deserializeInput CL.SampleComplexFloat bs = unsafeDupablePerformIO action
 
 deserializeInput CL.SampleComplexSigned16 bs = unsafeDupablePerformIO action
     where action = deserializeInputHelper arrayLength bs c_signed16ArrayToComplexDoubleArray
-          arrayLength = quot (B.length bs)  4
-
+          arrayLength = quot (B.length bs) (sizeOf(undefined::Word32))
 
 deserializeInput _ _  = VUB.empty
 
+
+-- | Wrapper around common functionlaity used by deserializeInput.
 {-# NOINLINE deserializeInputHelper #-}
 deserializeInputHelper :: Int -> B.ByteString ->
                            (CString ->  Ptr (Complex Double) -> Int ->  IO ()) ->
                             IO (VUB.Vector (Complex Double))
-deserializeInputHelper arrayLength bs cFunc = do
+deserializeInputHelper arrayLength bs cFunc =
 
-        B.useAsCStringLen bs $ \(src, _) ->
+        unsafeUseAsCStringLen bs $ \(src, _) ->
             allocaBytes arrayLengthBytes $ \ptr -> do
                 cFunc src ptr (2*arrayLength)
-                return $! VUB.generate (arrayLength) (\pos -> unsafeDupablePerformIO $ peekElemOff ptr pos)
+
+                return $! VUB.generate arrayLength (unsafeDupablePerformIO . peekElemOff ptr)
 
     where arrayLengthBytes = sizeOf(undefined::Complex Double) * arrayLength
 

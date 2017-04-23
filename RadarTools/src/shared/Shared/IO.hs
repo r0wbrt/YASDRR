@@ -39,7 +39,7 @@ module Shared.IO (
             complexSigned16SerializerOne, complexSigned16DeserializerOne,
             complexDoubleSerializer, serializeBlockV, complexDoubleMagSerializer,
             complexDoubleDeserializer, complexSigned16Deserializer, serializeOutput,
-            complexFloatMagSerializer) where
+            complexFloatMagSerializer,deserializeInput) where
 
 -- System imports
 import           Control.Exception
@@ -52,6 +52,14 @@ import           Data.Complex
 import           Data.Typeable
 import qualified Data.Vector.Unboxed  as VUB
 import           GHC.Float
+import           Foreign.ForeignPtr    (newForeignPtr, newForeignPtr_, castForeignPtr)
+import           Foreign.Marshal.Alloc (finalizerFree, mallocBytes)
+import           Foreign.Ptr           (Ptr)
+import           Foreign.Storable      (sizeOf)
+import           System.IO.Unsafe      (unsafeDupablePerformIO)
+import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
+import qualified Data.Vector.Storable  as VST
+import           Foreign.C.String (CString)
 
 --yasdrr shared imports
 import qualified Shared.CommandLine   as CL
@@ -66,6 +74,54 @@ serializeOutput CL.SampleComplexSigned16 signal = serializeBlockV complexSigned1
 serializeOutput CL.SampleComplexToDoubleMag signal = serializeBlockV complexDoubleMagSerializer signal
 serializeOutput CL.SampleComplexToFloatMag signal = serializeBlockV complexFloatMagSerializer signal
 serializeOutput CL.SampleComplexToSigned16Mag signal = serializeBlockV complexSigned16MagSerializerOne signal
+
+
+
+foreign import ccall unsafe "convertSigned16ArrayToDoubleArray" c_signed16ArrayToComplexDoubleArray ::
+        CString
+    ->  Ptr (Complex Double)
+    ->  Int
+    ->  IO ()
+
+foreign import ccall unsafe "convertFloatArrayToDoubleArray" c_complexFloatArrayToComplexDoubleArray ::
+        CString
+    ->  Ptr (Complex Double)
+    ->  Int
+    ->  IO ()
+
+
+deserializeInput :: CL.SampleFormat -> B.ByteString -> VUB.Vector (Complex Double)
+deserializeInput CL.SampleComplexDouble bs = unsafeDupablePerformIO $ do
+        bsPtr <- unsafeUseAsCStringLen bs ( \(src, _) -> return src)
+        fPtr <- newForeignPtr_ bsPtr
+        return $ VUB.convert $ VST.unsafeFromForeignPtr0 (castForeignPtr fPtr) arrayLength
+    where arrayLength = quot (B.length bs) (sizeOf(undefined::Complex Double) )
+
+deserializeInput CL.SampleComplexFloat bs = unsafeDupablePerformIO action
+    where action = deserializeInputHelper arrayLengthBytes arrayLength bs c_complexFloatArrayToComplexDoubleArray
+          arrayLength = quot (B.length bs) (sizeOf(undefined::Complex Float))
+          arrayLengthBytes = sizeOf(undefined::Complex Double) * arrayLength
+
+deserializeInput CL.SampleComplexSigned16 bs = unsafeDupablePerformIO action
+    where action = deserializeInputHelper arrayLengthBytes arrayLength bs c_signed16ArrayToComplexDoubleArray
+          arrayLength = quot (B.length bs)  4
+          arrayLengthBytes = sizeOf(undefined::Complex Double) * arrayLength
+
+deserializeInput _ _  = VUB.empty
+
+{-# NOINLINE deserializeInputHelper #-}
+deserializeInputHelper :: Int -> Int -> B.ByteString ->
+                           (CString ->  Ptr (Complex Double) -> Int ->  IO ()) ->
+                            IO (VUB.Vector (Complex Double))
+deserializeInputHelper arrayLengthBytes arrayLength bs cFunc = do
+
+        outputPtr <- mallocBytes arrayLengthBytes
+        
+        unsafeUseAsCStringLen bs $ do (\(src, _) -> cFunc src outputPtr (2*arrayLength))
+        
+        outputForeignPtr <- newForeignPtr finalizerFree outputPtr
+        
+        return $ VUB.convert $ VST.unsafeFromForeignPtr0 outputForeignPtr arrayLength
 
 
 -- | List of exceptions deserializeBlock can throw to consuming code.

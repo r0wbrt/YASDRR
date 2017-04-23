@@ -110,6 +110,7 @@ test-suite hlint
 executable             yasdrr
   main-is:             Main.hs
   ghc-options:      -Wall -Werror
+  c-sources:           src/shared/Shared/IO.c
 
   if flag(opt-fastc)
         cc-options: -march=native -O3 -ffast-math

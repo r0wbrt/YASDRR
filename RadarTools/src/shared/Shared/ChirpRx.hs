@@ -40,7 +40,7 @@ module Shared.ChirpRx
 import qualified Control.Monad         as CM
 import qualified Data.ByteString       as B
 import           Data.Complex
-import qualified Data.Vector.Unboxed   as VUB
+import qualified Data.Vector.Storable   as VST
 import           System.Console.GetOpt as GetOpt
 import           System.Exit
 import           System.IO
@@ -122,10 +122,10 @@ chirpRxMain programSettings = do
 
 
 -- | Compresses a received radar signal using pulse compression.
-processData :: (VUB.Vector (Complex Double) ->
-                VUB.Vector (Complex Double)) ->
-                 IO (Maybe ( VUB.Vector (Complex Double) ) )  ->
-                  (VUB.Vector (Complex Double) -> IO ()) -> IO ()
+processData :: (VST.Vector (Complex Double) ->
+                VST.Vector (Complex Double)) ->
+                 IO (Maybe ( VST.Vector (Complex Double) ) )  ->
+                  (VST.Vector (Complex Double) -> IO ()) -> IO ()
 processData signalProcessor signalReader signalWriter = do
 
     fileInput <- signalReader
@@ -138,7 +138,7 @@ processData signalProcessor signalReader signalWriter = do
 
 
 -- | Reads in radar samples using the reader function
-readInput :: Int -> Int -> CL.SampleFormat -> (Int -> IO B.ByteString) -> IO (Maybe (VUB.Vector (Complex Double)))
+readInput :: Int -> Int -> CL.SampleFormat -> (Int -> IO B.ByteString) -> IO (Maybe (VST.Vector (Complex Double)))
 readInput signalLength pulseTruncationLength sampleFormat reader = do
 
     fileBlock <- reader signalLengthBytes

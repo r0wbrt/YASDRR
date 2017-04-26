@@ -35,6 +35,7 @@ module YASDRR.DSP.Correlation
     (
       correlate
     , correlateV
+    , correlateVST
     )  where
 
 import           Data.Complex
@@ -76,11 +77,17 @@ correlateLoop impulse signal signalSize acc offset
                     (offset + 1)
 
 
--- | Does complex correlation via an external FFI C call.
-{-# NOINLINE correlateV #-}
+-- | Does complex correlation.
 correlateV :: VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
                     -> VUB.Vector (Complex Double)
-correlateV impulse pulse = unsafeDupablePerformIO $ do
+correlateV impulse pulse = VUB.convert $ correlateVST (VST.convert impulse) (VST.convert pulse)
+
+
+-- | Does complex correlation.
+{-# NOINLINE correlateVST #-}
+correlateVST :: VST.Vector (Complex Double) -> VST.Vector (Complex Double)
+                    -> VST.Vector (Complex Double)
+correlateVST impulse pulse = unsafeDupablePerformIO $ do
 
     outputPtr <- mallocBytes $ sizeOf(undefined::Complex Double) * pulseSize
 
@@ -90,10 +97,10 @@ correlateV impulse pulse = unsafeDupablePerformIO $ do
 
     outputForeignPtr <- newForeignPtr finalizerFree outputPtr
 
-    return $ VUB.convert $ VST.unsafeFromForeignPtr0 outputForeignPtr pulseSize
+    return $ VST.unsafeFromForeignPtr0 outputForeignPtr pulseSize
 
-    where pulsePtr = fst $ VST.unsafeToForeignPtr0 $ VST.convert pulse
-          impulsePtr = fst $ VST.unsafeToForeignPtr0 $ VST.convert impulse
-          impulseSize = VUB.length impulse
-          pulseSize = VUB.length pulse
+    where pulsePtr = fst $ VST.unsafeToForeignPtr0 pulse
+          impulsePtr = fst $ VST.unsafeToForeignPtr0 impulse
+          impulseSize = VST.length impulse
+          pulseSize = VST.length pulse
 

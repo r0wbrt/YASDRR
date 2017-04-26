@@ -69,17 +69,18 @@ import qualified Data.Vector.Storable   as VST
 import qualified Data.Vector.Unboxed    as VUB
 import           Data.Word
 import           Foreign.C.String       (CString)
-import           Foreign.ForeignPtr     (withForeignPtr)
-import           Foreign.Marshal.Alloc  (allocaBytes, free, mallocBytes)
+import           Foreign.ForeignPtr     (newForeignPtr, withForeignPtr)
+import           Foreign.Marshal.Alloc  (free, finalizerFree, mallocBytes)
 import           Foreign.Ptr            (Ptr, castPtr)
 import           Foreign.Storable       (peekElemOff, sizeOf)
 import           GHC.Float
 import qualified Shared.CommandLine     as CL
 import           System.IO.Unsafe       (unsafeDupablePerformIO)
 
+
 -- | Using the supplied sample format, converts a complex double vector into its
 --   associated bytestring.
-serializeOutput :: CL.SampleFormat -> VUB.Vector (Complex Double) -> B.ByteString
+serializeOutput :: CL.SampleFormat -> VST.Vector (Complex Double) -> B.ByteString
 serializeOutput CL.SampleComplexDouble signal = runCBasedSerializer (sizeOf(undefined::Complex Double)) c_convertComplexDoubleArrayToComplexDoubleArray signal
 serializeOutput CL.SampleComplexFloat signal = runCBasedSerializer (sizeOf(undefined::Complex Float)) c_convertComplexDoubleArrayToComplexFloatArray signal
 serializeOutput CL.SampleComplexSigned16 signal =  runCBasedSerializer (sizeOf(undefined::Word32)) c_convertComplexDoubleArrayToComplexSigned16 signal
@@ -157,23 +158,23 @@ foreign import ccall unsafe "convertComplexDoubleArrayToComplexDoubleArray" c_co
 runCBasedSerializer :: Int -> (Ptr (Complex Double)
     ->  Ptr a
     ->  Int
-    ->  IO ()) -> VUB.Vector (Complex Double) -> B.ByteString
+    ->  IO ()) -> VST.Vector (Complex Double) -> B.ByteString
 runCBasedSerializer typeSize c_func signal = unsafeDupablePerformIO $ do
         outputPtr <- mallocBytes arraySize
         withForeignPtr sourcePtr $ \sPtr -> do
-            c_func sPtr outputPtr (VUB.length signal)
+            c_func sPtr outputPtr (VST.length signal)
             unsafePackCStringFinalizer (castPtr outputPtr) arraySize (free outputPtr)
 
-    where sourcePtr = fst $ VST.unsafeToForeignPtr0 $ VST.convert signal
-          arraySize = typeSize * VUB.length signal
+    where sourcePtr = fst $ VST.unsafeToForeignPtr0 signal
+          arraySize = typeSize * VST.length signal
 
 -- | Deserializes a ByteString into a complex double vector. Note, only supports
 --   deserializing complex types. Magnitude types are not supported.
 {-# NOINLINE deserializeInput #-}
-deserializeInput :: CL.SampleFormat -> B.ByteString -> VUB.Vector (Complex Double)
+deserializeInput :: CL.SampleFormat -> B.ByteString -> VST.Vector (Complex Double)
 deserializeInput CL.SampleComplexDouble bs = unsafeDupablePerformIO $
         unsafeUseAsCStringLen bs $ \(bsPtr, _) ->
-            return $! VUB.generate arrayLength (unsafeDupablePerformIO . peekElemOff (castPtr bsPtr))
+            return $! VST.generate arrayLength (unsafeDupablePerformIO . peekElemOff (castPtr bsPtr))
 
     where arrayLength = quot (B.length bs) (sizeOf(undefined::Complex Double))
 
@@ -187,21 +188,24 @@ deserializeInput CL.SampleComplexSigned16 bs = unsafeDupablePerformIO action
     where action = deserializeInputHelper arrayLength bs c_signed16ArrayToComplexDoubleArray
           arrayLength = quot (B.length bs) (sizeOf(undefined::Word32))
 
-deserializeInput _ _  = VUB.empty
+deserializeInput _ _  = VST.empty
 
 
 -- | Wrapper around common functionlaity used by deserializeInput.
 {-# NOINLINE deserializeInputHelper #-}
 deserializeInputHelper :: Int -> B.ByteString ->
                            (CString ->  Ptr (Complex Double) -> Int ->  IO ()) ->
-                            IO (VUB.Vector (Complex Double))
-deserializeInputHelper arrayLength bs cFunc =
+                            IO (VST.Vector (Complex Double))
+deserializeInputHelper arrayLength bs cFunc = do
 
+        outputPtr <- mallocBytes arrayLengthBytes
+        
         unsafeUseAsCStringLen bs $ \(src, _) ->
-            allocaBytes arrayLengthBytes $ \ptr -> do
-                cFunc src ptr (2*arrayLength)
+                cFunc src outputPtr (2*arrayLength)
+                
+        outputForeignPtr <- newForeignPtr finalizerFree outputPtr
 
-                return $! VUB.generate arrayLength (unsafeDupablePerformIO . peekElemOff ptr)
+        return $ VST.unsafeFromForeignPtr0 outputForeignPtr arrayLength
 
     where arrayLengthBytes = sizeOf(undefined::Complex Double) * arrayLength
 

@@ -35,7 +35,6 @@ module YASDRR.DSP.Correlation
     (
       correlate
     , correlateV
-    , correlateFFIV
     )  where
 
 import           Data.Complex
@@ -55,16 +54,6 @@ foreign import ccall unsafe "complexCorrelate" c_correlation ::
     ->  Ptr (Complex Double)
     ->  Ptr (Complex Double)
     ->  IO ()
-
--- | Vector based correlation using complex numbers.
-correlateV :: VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
-                    -> VUB.Vector (Complex Double)
-correlateV impulse pulse
-    | impulse == VUB.empty = pulse
-    | otherwise = VUB.generate (VUB.length pulse) compress
-    where compress offset = VUB.sum $ VUB.zipWith (*)
-                                        conjImpulse (VUB.unsafeDrop offset pulse)
-          conjImpulse = VUB.map conjugate impulse
 
 
 -- | Complex correlation over a list.
@@ -88,10 +77,10 @@ correlateLoop impulse signal signalSize acc offset
 
 
 -- | Does complex correlation via an external FFI C call.
-{-# NOINLINE correlateFFIV #-}
-correlateFFIV :: VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
+{-# NOINLINE correlateV #-}
+correlateV :: VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
                     -> VUB.Vector (Complex Double)
-correlateFFIV impulse pulse = unsafeDupablePerformIO $ do
+correlateV impulse pulse = unsafeDupablePerformIO $ do
 
     outputPtr <- mallocBytes $ sizeOf(undefined::Complex Double) * pulseSize
 

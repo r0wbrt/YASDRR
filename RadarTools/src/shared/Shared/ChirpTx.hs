@@ -100,7 +100,6 @@ chirpTxMain programSettings = do
             , Chirp.optSilenceTruncateLength = ChirpCommon.optSilenceTruncateLength programSettings
             , Chirp.optAmplitude = ChirpCommon.optAmplitude programSettings
             , Chirp.optChirpWindow = ChirpCommon.optChirpWindow programSettings
-            , Chirp.optSignalWindow = ChirpCommon.optSignalWindow programSettings
             }
 
     let finalSignal = SIO.serializeOutput outputFormat $ Chirp.chirpTx chirpSettings

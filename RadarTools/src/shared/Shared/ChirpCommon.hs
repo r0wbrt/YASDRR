@@ -136,10 +136,6 @@ data ChirpOptions = ChirpOptions
 
  , optChirpWindow           :: SignalWindow
 
-   -- Window to use on the received signal
-
- , optSignalWindow          :: SignalWindow
-
    -- function to close the input
 
  , optCloseInput            :: IO ()
@@ -171,7 +167,6 @@ startOptions = ChirpOptions
  , optAmplitude = 0.2 -- Don't overload equipment by default
  , optChirpWindow = NoWindow
  , optOutputAsMagnitude = False
- , optSignalWindow = NoWindow
  }
 
 
@@ -218,7 +213,6 @@ commonMessage =
 chirpRadarRxOptions :: [OptDescr (ChirpOptions -> IO ChirpOptions)]
 chirpRadarRxOptions = chirpOptionList ++ [
       inputSilenceTruncationLength
-    , inputSignalWindow
     , inputFileInput
     , inputInputSignalFormat
     , inputOutputMagnitude
@@ -393,22 +387,6 @@ inputChirpWindow = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handl
           argExp = "Hamming | None"
           handler input opts = return $ opts
             { optChirpWindow =
-                case map DChar.toUpper input of
-                     "HAMMING" -> HammingWindow
-                     "NONE"    -> NoWindow
-                     _         -> error "Invalid window format"
-            }
-
-
--- | Sets the input signal window to use on the received radar wave form
-inputSignalWindow :: OptDescr (ChirpOptions -> IO ChirpOptions)
-inputSignalWindow = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description
-    where description = "Window to use on the radar pulse"
-          longOptionNames = ["pulseWindow", "PulseWindow"]
-          shortOptionsNames = []
-          argExp = "Hamming | None"
-          handler input opts = return $ opts
-            { optSignalWindow =
                 case map DChar.toUpper input of
                      "HAMMING" -> HammingWindow
                      "NONE"    -> NoWindow

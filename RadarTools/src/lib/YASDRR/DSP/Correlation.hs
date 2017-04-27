@@ -35,7 +35,7 @@ module YASDRR.DSP.Correlation
     (
       correlate
     , correlateV
-    , correlateFFIV
+    , correlateVST
     )  where
 
 import           Data.Complex
@@ -55,16 +55,6 @@ foreign import ccall unsafe "complexCorrelate" c_correlation ::
     ->  Ptr (Complex Double)
     ->  Ptr (Complex Double)
     ->  IO ()
-
--- | Vector based correlation using complex numbers.
-correlateV :: VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
-                    -> VUB.Vector (Complex Double)
-correlateV impulse pulse
-    | impulse == VUB.empty = pulse
-    | otherwise = VUB.generate (VUB.length pulse) compress
-    where compress offset = VUB.sum $ VUB.zipWith (*)
-                                        conjImpulse (VUB.unsafeDrop offset pulse)
-          conjImpulse = VUB.map conjugate impulse
 
 
 -- | Complex correlation over a list.
@@ -87,11 +77,17 @@ correlateLoop impulse signal signalSize acc offset
                     (offset + 1)
 
 
--- | Does complex correlation via an external FFI C call.
-{-# NOINLINE correlateFFIV #-}
-correlateFFIV :: VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
+-- | Does complex correlation.
+correlateV :: VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
                     -> VUB.Vector (Complex Double)
-correlateFFIV impulse pulse = unsafeDupablePerformIO $ do
+correlateV impulse pulse = VUB.convert $ correlateVST (VST.convert impulse) (VST.convert pulse)
+
+
+-- | Does complex correlation.
+{-# NOINLINE correlateVST #-}
+correlateVST :: VST.Vector (Complex Double) -> VST.Vector (Complex Double)
+                    -> VST.Vector (Complex Double)
+correlateVST impulse pulse = unsafeDupablePerformIO $ do
 
     outputPtr <- mallocBytes $ sizeOf(undefined::Complex Double) * pulseSize
 
@@ -101,10 +97,10 @@ correlateFFIV impulse pulse = unsafeDupablePerformIO $ do
 
     outputForeignPtr <- newForeignPtr finalizerFree outputPtr
 
-    return $ VUB.convert $ VST.unsafeFromForeignPtr0 outputForeignPtr pulseSize
+    return $ VST.unsafeFromForeignPtr0 outputForeignPtr pulseSize
 
-    where pulsePtr = fst $ VST.unsafeToForeignPtr0 $ VST.convert pulse
-          impulsePtr = fst $ VST.unsafeToForeignPtr0 $ VST.convert impulse
-          impulseSize = VUB.length impulse
-          pulseSize = VUB.length pulse
+    where pulsePtr = fst $ VST.unsafeToForeignPtr0 pulse
+          impulsePtr = fst $ VST.unsafeToForeignPtr0 impulse
+          impulseSize = VST.length impulse
+          pulseSize = VST.length pulse
 

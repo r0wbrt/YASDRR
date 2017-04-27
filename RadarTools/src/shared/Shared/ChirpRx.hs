@@ -114,7 +114,6 @@ chirpRxMain programSettings = do
                     , Chirp.optSilenceTruncateLength = pulseTruncationLength
                     , Chirp.optAmplitude = ChirpCommon.optAmplitude programSettings
                     , Chirp.optChirpWindow = ChirpCommon.optChirpWindow programSettings
-                    , Chirp.optSignalWindow = ChirpCommon.optSignalWindow programSettings
                     }
 
               let signalProcessor input = strictReturn $ SIO.serializeOutput outputFormat $ Chirp.chirpRx chirpSettings $ SIO.deserializeInput inputFormat input

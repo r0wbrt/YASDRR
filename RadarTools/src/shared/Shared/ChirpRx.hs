@@ -37,21 +37,19 @@ module Shared.ChirpRx
 
 
 -- System imports
-import qualified Control.Concurrent.Async as Async
-import qualified Control.Monad            as CM
-import qualified Data.ByteString          as B
-import           Data.Either
-import           System.Console.GetOpt    as GetOpt
+import qualified Control.Monad         as CM
+import qualified Data.ByteString       as B
+import           System.Console.GetOpt as GetOpt
 import           System.Exit
 import           System.IO
 
 --  yasdrr library imports
-import qualified YASDRR.SDR.ChirpRadar    as Chirp
+import qualified YASDRR.SDR.ChirpRadar as Chirp
 
 -- yasdrr executable imports
-import qualified Shared.ChirpCommon       as ChirpCommon
-import qualified Shared.CommandLine       as CL
-import qualified Shared.IO                as SIO
+import qualified Shared.ChirpCommon    as ChirpCommon
+import qualified Shared.CommandLine    as CL
+import qualified Shared.IO             as SIO
 
 
 -- | process the command line input into the program settings
@@ -116,53 +114,36 @@ chirpRxMain programSettings = do
                     , Chirp.optChirpWindow = ChirpCommon.optChirpWindow programSettings
                     }
 
-              let signalProcessor input = strictReturn $ SIO.serializeOutput outputFormat $ Chirp.chirpRx chirpSettings $ SIO.deserializeInput inputFormat input
+              let signalProcessor input = SIO.serializeOutput outputFormat $ Chirp.chirpRx chirpSettings $ SIO.deserializeInput inputFormat input
 
-              initialBlockList <- fmap rights (CM.replicateM 2 signalReader)
-
-              workers <- mapM (Async.async . signalProcessor) initialBlockList
-
-              io <- Async.async (processData signalProcessor signalReader signalWriter workers)
-              _ <- Async.wait io
+              processData signalProcessor signalReader signalWriter
 
               return ()
 
 
--- | Processes the radar data using the supplied list of workers.
-processData :: (B.ByteString -> IO B.ByteString) ->
-                IO (Either () B.ByteString) -> (B.ByteString -> IO ()) ->
-                 [Async.Async B.ByteString] -> IO ()
-processData _ _ _ [] = return ()
-processData signalProcessor signalReader signalWriter actions = do
-
-    writeAsyncResult signalWriter (head actions)
+processData :: (B.ByteString -> B.ByteString) ->
+                IO (Maybe B.ByteString) -> (B.ByteString -> IO ())-> IO ()
+processData signalProcessor signalReader signalWriter = do
 
     fileBlockWrapper <- signalReader
+
     case fileBlockWrapper of
-         Right fileBlock -> Async.async (signalProcessor fileBlock) >>= (\newAction -> processData signalProcessor signalReader signalWriter $ tail actions ++ [newAction])
-         Left _ -> mapM_ (writeAsyncResult signalWriter) (tail actions)
-
-
--- | Waits for an Async expression to return and writes it to the file.
-writeAsyncResult :: (B.ByteString -> IO ()) ->
-                     Async.Async B.ByteString -> IO ()
-writeAsyncResult writer asyncAction = Async.wait asyncAction >>= writer
-
-
--- | Makes the return into the IO monad strict.
-strictReturn :: (a -> IO a)
-strictReturn f = return $! f
+         Just fileBlock -> do
+             let res = signalProcessor fileBlock
+             signalWriter res
+             processData signalProcessor signalReader signalWriter
+         Nothing -> return ()
 
 
 -- | Reads in radar samples using the reader function
 readInput :: Int -> Int -> CL.SampleFormat -> (Int -> IO B.ByteString)
-                -> IO (Either () B.ByteString)
+                -> IO (Maybe B.ByteString)
 readInput signalLength pulseTruncationLength sampleFormat reader = do
 
     fileBlock <- reader signalLengthBytes
 
-    return $! if B.length fileBlock < signalLengthBytes then Left ()
-                    else Right $ B.take (B.length fileBlock - truncationLengthBytes) fileBlock
+    return $! if B.length fileBlock < signalLengthBytes then Nothing
+                    else Just $ B.take (B.length fileBlock - truncationLengthBytes) fileBlock
 
     where sampleSize = case sampleFormat of
                         CL.SampleComplexDouble -> 16
@@ -172,7 +153,3 @@ readInput signalLength pulseTruncationLength sampleFormat reader = do
 
           signalLengthBytes = signalLength * sampleSize
           truncationLengthBytes = sampleSize * pulseTruncationLength
-
-
-
-

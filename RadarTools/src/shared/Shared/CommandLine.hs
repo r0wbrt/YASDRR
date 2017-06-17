@@ -53,10 +53,13 @@ module Shared.CommandLine
     , programInputError
     , validateOptions
     , safeReader
+    , safeOpenRead
+    , safeOpenWrite
     ) where
 
 import qualified Data.ByteString       as B
 import qualified Data.Char             as DChar
+import           GHC.IO.Handle.FD      (openFileBlocking)
 import           System.Console.GetOpt as GetOpt
 import           System.Environment
 import           System.Exit
@@ -159,7 +162,7 @@ inputFileOutput handler = GetOpt.Option shortOptionsNames longOptionNames (ReqAr
 --   command line input.
 commonOutputFileHandler :: String -> IO (B.ByteString -> IO (), IO ())
 commonOutputFileHandler input = do
-    handle <- openBinaryFile input WriteMode
+    handle <- safeOpenWrite input
     return (B.hPut handle, hClose handle)
 
 
@@ -196,8 +199,30 @@ inputFileInput handler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg
 --   closer function.
 commonInputFileHandler :: String -> IO (Int -> IO B.ByteString, IO ())
 commonInputFileHandler input = do
-    handle <- openBinaryFile input ReadMode
+    handle <- safeOpenRead input
     return (safeReader handle, hClose handle)
+
+-- | Opens a file for reading
+safeOpenRead :: String -> IO Handle
+safeOpenRead path = do
+    h <- openFileBlocking path ReadMode -- Needed to open named pipes
+    setUpHandleOptions h
+    return h
+
+
+-- | Opens a file for writing
+safeOpenWrite :: String -> IO Handle
+safeOpenWrite path = do
+    h <- openFileBlocking path WriteMode -- Needed to open named pipes
+    setUpHandleOptions h
+    return h
+
+
+-- | Sets up common handle options
+setUpHandleOptions :: Handle -> IO ()
+setUpHandleOptions h = do
+    hSetBinaryMode h True
+    hSetBuffering h (BlockBuffering (Just 65536))
 
 
 -- | A reader that avoids throwing an EOF exception

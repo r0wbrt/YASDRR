@@ -145,7 +145,7 @@ validateSampleRate options list = if sampleRate <= 0 then errorMessage:list else
 --   The file will be written to using a lazy byte string.
 inputFileOutput :: String -> MorseOptions -> IO MorseOptions
 inputFileOutput input opt = do
-    h <- openBinaryFile input WriteMode
+    h <- CL.safeOpenWrite input
     return opt {optionsOutputCloser = hClose h, optionsOutputWriter = BL.hPut h}
 
 

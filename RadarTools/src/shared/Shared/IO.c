@@ -50,7 +50,7 @@ void convertFloatArrayToDoubleArray(float * source, double * dest, int size)
     int i;
     for(i = 0; i < size; i++) 
     {
-        dest[i] = (float)source[i];
+        dest[i] = (double)source[i];
     }
 }
 

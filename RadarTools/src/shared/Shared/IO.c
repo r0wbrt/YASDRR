@@ -100,13 +100,23 @@ void convertComplexDoubleArrayToComplexSigned16(double * source, int16_t * dest,
  * Duplicates a complex double array. 
  * @param source The address to copy from.
  * @param dest The address to copy to.
- * @param size The size of the array in doubles.
+ * @param size The size of the array in complex doubles.
  */
 void convertComplexDoubleArrayToComplexDoubleArray(double * source, double * dest, int size)
 {
     memcpy(dest, source, sizeof(double)*size*2);
 }
 
+/**
+ * Duplicates a double array
+ * @param source The address to copy from.
+ * @param dest The address to copy to.
+ * @param size The size of the array in doubles.
+ */
+void convertDoubleArrayToDoubleArray(double * source, double * dest, int size)
+{
+    memcpy(dest, source, sizeof(double)*size);
+}
 
 /**
  * Converts a complex double array to its magnitude squared (|z|^2).

@@ -152,6 +152,14 @@ foreign import ccall unsafe "convertComplexDoubleArrayToComplexDoubleArray" c_co
     ->  Int
     ->  IO ()
 
+-- | Makes a copy of a complex double array.
+foreign import ccall unsafe "convertDoubleArrayToDoubleArray" c_convertDoubleArrayToDoubleArray ::
+        CString
+    ->  Ptr (Complex Double)
+    ->  Int
+    ->  IO ()
+
+
 -- | Runs a C Based serializer that converts a Complex Double Unboxed Vector
 --   into a ByteString.
 {-# NOINLINE runCBasedSerializer #-}
@@ -168,21 +176,18 @@ runCBasedSerializer typeSize c_func signal = unsafeDupablePerformIO $ do
     where sourcePtr = fst $ VST.unsafeToForeignPtr0 signal
           arraySize = typeSize * VST.length signal
 
+
 -- | Deserializes a ByteString into a complex double vector. Note, only supports
 --   deserializing complex types. Magnitude types are not supported.
 {-# NOINLINE deserializeInput #-}
 deserializeInput :: CL.SampleFormat -> B.ByteString -> VST.Vector (Complex Double)
-deserializeInput CL.SampleComplexDouble bs = unsafeDupablePerformIO $
-        unsafeUseAsCStringLen bs $ \(bsPtr, _) ->
-            return $! VST.generate arrayLength (unsafeDupablePerformIO . peekElemOff (castPtr bsPtr))
-
-    where arrayLength = quot (B.length bs) (sizeOf(undefined::Complex Double))
-
+deserializeInput CL.SampleComplexDouble bs = unsafeDupablePerformIO action
+    where action = deserializeInputHelper arrayLength bs c_convertDoubleArrayToDoubleArray
+          arrayLength = quot (B.length bs) (sizeOf(undefined::Complex Double))
 
 deserializeInput CL.SampleComplexFloat bs = unsafeDupablePerformIO action
     where action = deserializeInputHelper arrayLength bs c_complexFloatArrayToComplexDoubleArray
           arrayLength = quot (B.length bs) (sizeOf(undefined::Complex Float))
-
 
 deserializeInput CL.SampleComplexSigned16 bs = unsafeDupablePerformIO action
     where action = deserializeInputHelper arrayLength bs c_signed16ArrayToComplexDoubleArray

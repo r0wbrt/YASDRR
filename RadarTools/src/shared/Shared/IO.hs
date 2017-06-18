@@ -72,7 +72,7 @@ import           Foreign.C.String       (CString)
 import           Foreign.ForeignPtr     (newForeignPtr, withForeignPtr)
 import           Foreign.Marshal.Alloc  (finalizerFree, free, mallocBytes)
 import           Foreign.Ptr            (Ptr, castPtr)
-import           Foreign.Storable       (peekElemOff, sizeOf)
+import           Foreign.Storable       (sizeOf)
 import           GHC.Float
 import qualified Shared.CommandLine     as CL
 import           System.IO.Unsafe       (unsafeDupablePerformIO)

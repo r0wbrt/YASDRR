@@ -44,8 +44,8 @@ import           YASDRR.DSP.FFT
 import           YASDRR.Math.Misc
 
 --Process a doppler return given the pulses stored as a 2-d vector of vectors.
-processDopplerReturnV :: VB.Vector ( VUB.Vector (Complex Double) ) ->
-                                            VB.Vector (VUB.Vector (Complex Double))
+processDopplerReturnV :: VB.Vector ( VUB.Vector (Complex Float) ) ->
+                                            VB.Vector (VUB.Vector (Complex Float))
 processDopplerReturnV pulseList = VB.map fft transposedMatrix
 
     where fft = createFftV (VUB.length $ transposedMatrix VB.! 0) (-1)
@@ -57,7 +57,7 @@ processDopplerReturnV pulseList = VB.map fft transposedMatrix
           numberOfRows = VUB.length (pulseList VB.! 0)
 
 --Process a doppler return given the pulses stores as a 2-d list of list.
-processDopplerReturn :: [[Complex Double]] -> [[Complex Double]]
+processDopplerReturn :: [[Complex Float]] -> [[Complex Float]]
 processDopplerReturn pulseList  = map fft transposedMatrix
 
     where fft = createFft (length (head transposedMatrix)) (-1)

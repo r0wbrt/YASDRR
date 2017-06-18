@@ -64,7 +64,7 @@ data MorseOptions =
 
                    -- The sample rate of the morse transmission
 
-                 , optionsSampleRate         :: Double
+                 , optionsSampleRate         :: Float
 
                    -- The keying rate of the morse transmission
 
@@ -72,7 +72,7 @@ data MorseOptions =
 
                    -- Offset of the generated wave form from zero Hz
 
-                 , optionsDotFrequency       :: Double
+                 , optionsDotFrequency       :: Float
 
                    -- IO path to route the output waveform. Generally a
                    -- function that writes to a file. However, it could
@@ -92,7 +92,7 @@ data MorseOptions =
 
                    -- Amplitude of the morse signal.
 
-                 , optionsAmplitude          :: Double
+                 , optionsAmplitude          :: Float
                  }
 
 
@@ -101,11 +101,11 @@ data MorseOptions =
 startOptions :: MorseOptions
 startOptions =
     MorseOptions { optionsInput = getContents
-                 , optionsSampleRate = 44100::Double -- https://en.wikipedia.org/wiki/44,100_Hz
+                 , optionsSampleRate = 44100::Float -- https://en.wikipedia.org/wiki/44,100_Hz
                  , optionsWordsPerMinute = 20::Int
-                 , optionsDotFrequency = 600::Double
+                 , optionsDotFrequency = 600::Float
                  , optionsOutputWriter = BL.hPut stdout
-                 , optionsOutputSignalFormat = CL.SampleComplexDouble
+                 , optionsOutputSignalFormat = CL.SampleComplexFloat
                  , optionsOutputCloser = hClose stdout
                  , optionsAmplitude = 0.2 -- Don't overload equipment by default.
                  }
@@ -271,15 +271,15 @@ morseTxMain executionSettings = do
 
 
 -- | Takes a list of morse symbols and translates them into a complex stream.
-generateMorseStream :: (Complex Double -> BP.Put) -> Double -> Double ->
-                            Double -> Double -> ([Morse.MorseSymbol] -> BP.Put)
+generateMorseStream :: (Complex Float -> BP.Put) -> Float -> Float ->
+                            Float -> Float -> ([Morse.MorseSymbol] -> BP.Put)
 generateMorseStream serializer sampleRate dotLength frequency amplitude = mapM_ (generateMorseSymbol serializer sampleRate dotLength frequency amplitude)
 
 
 -- | Takes a morse symbol and generates its corresponding signal using the supplied
 --   input parameters.
-generateMorseSymbol :: (Complex Double -> BP.Put) -> Double -> Double
-                            -> Double -> Double -> Morse.MorseSymbol -> BP.Put
+generateMorseSymbol :: (Complex Float -> BP.Put) -> Float -> Float
+                            -> Float -> Float -> Morse.MorseSymbol -> BP.Put
 generateMorseSymbol serializer sampleRate dotLength frequency amplitude symbol = mapM_ (serializer . generateMorseSample sampleRate frequency symAmplitude) [1 .. symLength]
 
     -- It seems wierd to have symbol lengths that are not integer in length.
@@ -294,5 +294,5 @@ generateMorseSymbol serializer sampleRate dotLength frequency amplitude symbol =
 
 
 -- | Generates a single complex morse sample.
-generateMorseSample :: Double -> Double -> Double -> Int -> Complex Double
+generateMorseSample :: Float -> Float -> Float -> Int -> Complex Float
 generateMorseSample sampleRate frequency amplitude pos = (amplitude :+ 0 ) * cis(2.0 * pi * frequency * fromIntegral pos / sampleRate)

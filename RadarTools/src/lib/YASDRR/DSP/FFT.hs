@@ -57,9 +57,9 @@ import           System.IO.Unsafe
 -- | C function that calculates both the foward and backward fft transform over
 --   an array of data.
 foreign import ccall unsafe "fft" c_fft ::
-       Ptr (Complex Double) -- ^ Input signal that will be converted inplace
+       Ptr (Complex Float) -- ^ Input signal that will be converted inplace
                             --   via the fft algorithm
-    -> Ptr Double           -- ^ Location to store the Sin/Cos table.
+    -> Ptr Float           -- ^ Location to store the Sin/Cos table.
                             --   Should have size (n/2) - 1
     -> Ptr Int              -- ^ Work Area used by the algorithm when doing
                             --   computation.
@@ -73,7 +73,7 @@ foreign import ccall unsafe "fft" c_fft ::
 
 -- | Performs an fft on the input data in the form of a list.
 {-# NOINLINE fft #-}
-fft:: Int -> Int -> [Complex Double] -> [Complex Double]
+fft:: Int -> Int -> [Complex Float] -> [Complex Float]
 fft fftSize direction input
     | inputLength /= fftSize  = error "Input length does not match fftSize"
     | fftSize < 1             = error "fftSize is invalid"
@@ -86,10 +86,10 @@ fft fftSize direction input
         \cinput ->
 
         -- Convert the pre-computed vector coefficients into a c array
-        allocaBytes (sizeOf (undefined::Double) * div fftSize 2) $ \ccoefs ->
+        allocaBytes (sizeOf (undefined::Float) * div fftSize 2) $ \ccoefs ->
 
                 -- Convert the pre-computed IP coefficients into a c array
-                allocaBytes (sizeOf (undefined::Int) *  ceiling ((2.0::Double)
+                allocaBytes (sizeOf (undefined::Int) *  ceiling ((2.0::Float)
                     + sqrt(fromIntegral fftSize))) $ \cworkarea -> do
 
                     --perform the fft using the c function
@@ -103,7 +103,7 @@ fft fftSize direction input
 
 -- | Sets up a list based FFT.
 {-# NOINLINE createFft #-}
-createFft :: Int -> Int -> ([Complex Double] -> [Complex Double])
+createFft :: Int -> Int -> ([Complex Float] -> [Complex Float])
 createFft 0 _               = const []
 createFft 1 _               = take 1
 createFft fftSize direction = fft fftSize direction
@@ -111,21 +111,21 @@ createFft fftSize direction = fft fftSize direction
 
 -- | Sets up a vector based FFT
 {-# NOINLINE createFftV #-}
-createFftV :: Int -> Int -> (VUB.Vector (Complex Double) ->
-                VUB.Vector (Complex Double))
+createFftV :: Int -> Int -> (VUB.Vector (Complex Float) ->
+                VUB.Vector (Complex Float))
 createFftV 0 _ = const VUB.empty
 createFftV 1 _ = VUB.take 1
 createFftV fftSize direction = VUB.fromList . fft fftSize direction . VUB.toList
 
 -- | Cyclic shifts a spectrum by a given number of FFT bins.
-cyclicShift :: Double -> Int -> [Complex Double] -> [Complex Double]
+cyclicShift :: Float -> Int -> [Complex Float] -> [Complex Float]
 cyclicShift shift size signal = zipWith (*) signal cyclicCoefs
 
     where cyclicCoefs = cycle [ cyclicCoef shift size i | i <- [0..(size - 1) ]]
 
 -- | Cyclic shifts a vector spectrum by a given number of FFT bins.
-cyclicShiftV :: Double -> Int -> VUB.Vector (Complex Double)
-                    -> VUB.Vector (Complex Double)
+cyclicShiftV :: Float -> Int -> VUB.Vector (Complex Float)
+                    -> VUB.Vector (Complex Float)
 cyclicShiftV shift size signal = VUB.zipWith (*) signal cyclicCoefs
 
     where cyclicCoefs = VUB.generate (VUB.length signal)
@@ -133,7 +133,7 @@ cyclicShiftV shift size signal = VUB.zipWith (*) signal cyclicCoefs
 
 
 -- | Calculates the coefs to cyclic mutate a matrix
-cyclicCoef :: Double -> Int -> Int -> Complex Double
+cyclicCoef :: Float -> Int -> Int -> Complex Float
 cyclicCoef shift size pos = cis $ top / bottom
 
     where top = -2.0 * pi * shift * fromInteger(fromIntegral pos)
@@ -142,8 +142,8 @@ cyclicCoef shift size pos = cis $ top / bottom
 
 
 -- | Cyclic shifts a matrix by a given shift
-cyclicMutateMatrixV :: Double -> Int -> VB.Vector (VUB.Vector (Complex Double)) ->
-                        VB.Vector (VUB.Vector (Complex Double))
+cyclicMutateMatrixV :: Float -> Int -> VB.Vector (VUB.Vector (Complex Float)) ->
+                        VB.Vector (VUB.Vector (Complex Float))
 cyclicMutateMatrixV shift size = VB.map multiplyColumn
 
     --Multiply each column entry with the cyclic shift coef
@@ -151,8 +151,8 @@ cyclicMutateMatrixV shift size = VB.map multiplyColumn
 
 
 -- | Cyclic shifts a matrix by a given shift
-cyclicMutateMatrix :: Double -> Int -> ([[Complex Double]] ->
-                            [[Complex Double]])
+cyclicMutateMatrix :: Float -> Int -> ([[Complex Float]] ->
+                            [[Complex Float]])
 cyclicMutateMatrix shift size = map multiplyColumn
 
     --Multiply each column entry with the cyclic shift coef

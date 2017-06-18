@@ -41,8 +41,8 @@ import qualified YASDRR.Math.Misc as MathMisc
 
 -- | Converts a data block into a list of symbols. Symbols are in LIFO order
 --   and have little edian bit order.
-bytesToSymbols :: Int -> Array.Array Word8 (Complex Double) ->
-                                        B.ByteString -> [Complex Double]
+bytesToSymbols :: Int -> Array.Array Word8 (Complex Float) ->
+                                        B.ByteString -> [Complex Float]
 bytesToSymbols wordSize constellationArray dataBlock =
 
     if dataBlock == B.empty || not isWordSizePowerOf2AndSizeMost8 then
@@ -57,8 +57,8 @@ bytesToSymbols wordSize constellationArray dataBlock =
 
 -- | Takes a byte as input, and using a supplied mapping array, converts that
 --   byte into a list of symbols.
-byteToSymbol :: Array.Array Word8 (Complex Double) -> Int ->
-                                                Int -> Word8 -> [Complex Double]
+byteToSymbol :: Array.Array Word8 (Complex Float) -> Int ->
+                                                Int -> Word8 -> [Complex Float]
 byteToSymbol _ _ 8 _ = []
 byteToSymbol constellationArray wordSize shiftC byte =
     (constellationArray Array.! index):byteToSymbol constellationArray wordSize (w8wordSize + shiftC) byte

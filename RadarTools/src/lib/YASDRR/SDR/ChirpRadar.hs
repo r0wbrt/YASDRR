@@ -52,14 +52,14 @@ data SignalWindow = HammingWindow | NoWindow
 
 -- | Settings controlling the behavior of the chirp modules.
 data ChirpRadarSettings = ChirpRadarSettings
- { optStartFrequency        :: Double
- , optEndFrequency          :: Double
- , optFrequencyShift        :: Double
- , optSampleRate            :: Double
- , optRiseTime              :: Double
+ { optStartFrequency        :: Float
+ , optEndFrequency          :: Float
+ , optFrequencyShift        :: Float
+ , optSampleRate            :: Float
+ , optRiseTime              :: Float
  , optSilenceLength         :: Int
  , optSilenceTruncateLength :: Int
- , optAmplitude             :: Double
+ , optAmplitude             :: Float
  , optChirpWindow           :: SignalWindow
  }
 
@@ -67,20 +67,20 @@ data ChirpRadarSettings = ChirpRadarSettings
 -- | Takes a ChirpRadarSettings record and then returns a function that
 --   can process a chirp radar return pulse.
 chirpRx :: ChirpRadarSettings ->
-                    (VST.Vector (Complex Double) -> VST.Vector (Complex Double))
+                    (VST.Vector (Complex Float) -> VST.Vector (Complex Float))
 chirpRx programSettings = compressReturn windowedChirp
     where windowedChirp = generateChirpUsingSettings programSettings {optAmplitude = 1.0}
 
 
 -- | Generates a chirp radar pulse using the supplied settings.
-chirpTx :: ChirpRadarSettings -> VST.Vector (Complex Double)
+chirpTx :: ChirpRadarSettings -> VST.Vector (Complex Float)
 chirpTx programSettings = windowedChirp VST.++ VST.replicate silenceLength (0.0 :+ 0.0)
     where windowedChirp = generateChirpUsingSettings programSettings
           silenceLength = optSilenceLength programSettings
 
 
 -- | Generates a chirp using the supplied ChirpRadarSettings.
-generateChirpUsingSettings :: ChirpRadarSettings -> VST.Vector (Complex Double)
+generateChirpUsingSettings :: ChirpRadarSettings -> VST.Vector (Complex Float)
 generateChirpUsingSettings programSettings = windowedChirp
     where sampleRate = optSampleRate programSettings
 
@@ -100,20 +100,20 @@ generateChirpUsingSettings programSettings = windowedChirp
 
 
 -- | Compresses the a returned signal using a reference chirp signal, and a pulseWindow.
-compressReturn :: VST.Vector (Complex Double) ->
-                   VST.Vector (Complex Double) -> VST.Vector (Complex Double)
+compressReturn :: VST.Vector (Complex Float) ->
+                   VST.Vector (Complex Float) -> VST.Vector (Complex Float)
 compressReturn = Cor.correlateVST
 
 
 -- | Generates a chirp window based on the selected signal window.
-getChirpWindow :: SignalWindow -> Int -> VST.Vector Double
+getChirpWindow :: SignalWindow -> Int -> VST.Vector Float
 getChirpWindow window n = case window of
                           HammingWindow -> VST.convert $ Windows.hammingWindowV n
                           NoWindow      -> VST.replicate n 1.0
 
 
 -- | Generates a linear chirp.
-generateChirp :: Double -> Double -> Double -> Double -> VST.Vector (Complex Double)
+generateChirp :: Float -> Float -> Float -> Float -> VST.Vector (Complex Float)
 generateChirp sampleRate startFrequency endFrequency chirpLength = VST.fromList signalList
     where signalList = [cis $ phi $ fromIntegral i | i <- [0::Int .. floor chirpLength] ]
           phi t = ((pi*fd*t*t) / chirpLength) + ((2.0*pi*startFrequency*t) / sampleRate)

@@ -40,5 +40,5 @@ module YASDRR.DSP.Windows
 import qualified Data.Vector.Unboxed as VUB
 
 -- | Generates a hamming window
-hammingWindowV :: Int -> VUB.Vector Double
+hammingWindowV :: Int -> VUB.Vector Float
 hammingWindowV n = VUB.fromList [0.54 - 0.46 * cos((2.0 * pi * fromIntegral i) / fromIntegral (n - 1)) | i <- [0..n-1]]

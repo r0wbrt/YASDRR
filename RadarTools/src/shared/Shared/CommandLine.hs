@@ -140,13 +140,13 @@ getModeFromString input = case map DChar.toUpper input of
 
 
 -- | Processes the amplitude command line flag into its actual value.
-inputAmplitude :: (Double -> a -> IO a) ->  OptDescr (a -> IO a)
+inputAmplitude :: (Float -> a -> IO a) ->  OptDescr (a -> IO a)
 inputAmplitude recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description
     where description = "Amplitude of the chirp"
           longOptionNames = ["amplitude", "Amplitude"]
           shortOptionsNames = []
           argExp = "amplitude"
-          handler input = recordHandler (read input::Double)
+          handler input = recordHandler (read input::Float)
 
 
 -- | Handles the file output option.
@@ -246,23 +246,23 @@ getSampleFormatFromString input = case map DChar.toUpper input of
 
 
 -- | Handles the command line option that specifies the sample rate.
-inputSampleRate :: (Double -> a -> IO a) -> OptDescr (a -> IO a)
+inputSampleRate :: (Float -> a -> IO a) -> OptDescr (a -> IO a)
 inputSampleRate recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description
     where description = "Sample rate of signal"
           longOptionNames = ["sampleRate", "SampleRate"]
           shortOptionsNames = []
           argExp = "frequency * samples * s^-1"
-          handler input = recordHandler (read input::Double)
+          handler input = recordHandler (read input::Float)
 
 
 -- | Handles the command line option specifying the frequency shift.
-inputFrequencyShift :: (Double -> a -> IO a) -> OptDescr (a -> IO a)
+inputFrequencyShift :: (Float -> a -> IO a) -> OptDescr (a -> IO a)
 inputFrequencyShift recordHandler = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler argExp) description
     where description = "Frequency shift of the signal"
           longOptionNames = ["frequencyShift", "FrequencyShift"]
           shortOptionsNames = []
           argExp = "frequency * hz * s^-1"
-          handler input = recordHandler (read input::Double)
+          handler input = recordHandler (read input::Float)
 
 
 -- | Handles the command line option that supplies a text message.

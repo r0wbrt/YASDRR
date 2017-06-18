@@ -109,7 +109,7 @@ test-suite hlint
   
 executable             yasdrr
   main-is:             Main.hs
-  ghc-options:      -Wall -Werror
+  ghc-options:      -Wall -Werror -O2
   c-sources:           src/shared/Shared/IO.c
 
   if flag(opt-fastc)

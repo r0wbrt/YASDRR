@@ -51,14 +51,14 @@ import           System.IO.Unsafe      (unsafeDupablePerformIO)
 foreign import ccall unsafe "complexCorrelate" c_correlation ::
         Int
     ->  Int
-    ->  Ptr (Complex Double)
-    ->  Ptr (Complex Double)
-    ->  Ptr (Complex Double)
+    ->  Ptr (Complex Float)
+    ->  Ptr (Complex Float)
+    ->  Ptr (Complex Float)
     ->  IO ()
 
 
 -- | Complex correlation over a list.
-correlate :: [Complex Double] -> [Complex Double] -> [Complex Double]
+correlate :: [Complex Float] -> [Complex Float] -> [Complex Float]
 correlate impulse signal = map loopFunction [0..(length signal - 1)]
 
     where conjImpulse = map conjugate impulse
@@ -67,8 +67,8 @@ correlate impulse signal = map loopFunction [0..(length signal - 1)]
 
 
 --Correlation accumulator loop, written based on profiling data
-correlateLoop :: [Complex Double] -> VUB.Vector (Complex Double) -> Int
-                        -> Complex Double -> Int -> Complex Double
+correlateLoop :: [Complex Float] -> VUB.Vector (Complex Float) -> Int
+                        -> Complex Float -> Int -> Complex Float
 correlateLoop [] _ _ acc _  = acc
 correlateLoop impulse signal signalSize acc offset
     | offset == signalSize = acc
@@ -78,18 +78,18 @@ correlateLoop impulse signal signalSize acc offset
 
 
 -- | Does complex correlation.
-correlateV :: VUB.Vector (Complex Double) -> VUB.Vector (Complex Double)
-                    -> VUB.Vector (Complex Double)
+correlateV :: VUB.Vector (Complex Float) -> VUB.Vector (Complex Float)
+                    -> VUB.Vector (Complex Float)
 correlateV impulse pulse = VUB.convert $ correlateVST (VST.convert impulse) (VST.convert pulse)
 
 
 -- | Does complex correlation.
 {-# NOINLINE correlateVST #-}
-correlateVST :: VST.Vector (Complex Double) -> VST.Vector (Complex Double)
-                    -> VST.Vector (Complex Double)
+correlateVST :: VST.Vector (Complex Float) -> VST.Vector (Complex Float)
+                    -> VST.Vector (Complex Float)
 correlateVST impulse pulse = unsafeDupablePerformIO $ do
 
-    outputPtr <- mallocBytes $ sizeOf(undefined::Complex Double) * pulseSize
+    outputPtr <- mallocBytes $ sizeOf(undefined::Complex Float) * pulseSize
 
     _ <- withForeignPtr pulsePtr (\pulseRawPtr ->
         withForeignPtr impulsePtr (\impulseRawPtr ->

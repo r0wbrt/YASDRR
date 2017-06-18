@@ -25,62 +25,62 @@ limitations under the License.
 #include <string.h>
 
 /**
- * Converts an array of signed 16 values to doubles.
- * @param source The array of signed 16 values to convert to doubles.
+ * Converts an array of signed 16 values to floats.
+ * @param source The array of signed 16 values to convert to floats.
  * @param dest The memory location to write the conversion results to.
  * @param size The size of the int16_t array.
  */
-void convertSigned16ArrayToDoubleArray(int16_t * source, double * dest, int size) 
+void convertSigned16ArrayToFloatArray(int16_t * source, float * dest, int size) 
 {
     int i;
     for(i = 0; i < size; i++) 
     {
-        dest[i] = (double) source[i] / 32768.0;
+        dest[i] = (float) source[i] / 32768.0;
     }
 }
 
 /**
- * Converts a float array into a double array.
+ * Converts a double array into a float array.
  * @param source Pointer to the array of floats to copy in.
- * @param dest Pointer to the array to write doubles into.
+ * @param dest Pointer to the array to write floats into.
  * @param The size of the float array.
  */
-void convertFloatArrayToDoubleArray(float * source, double * dest, int size)
+void convertDoubleArrayToFloatArray(double * source, float * dest, int size)
 {
     int i;
     for(i = 0; i < size; i++) 
-    {
-        dest[i] = (double)source[i];
-    }
-}
-
-/**
- * Converts a complex double array into a complex float array.
- * @param source Pointer to the array of doubles to read from.
- * @param dest Pointer to the array of floats to write values to.
- * @param size The size of the array.
- */
-void convertComplexDoubleArrayToComplexFloatArray(double * source, float * dest, int size)
-{
-    int i;
-    for(i = 0; i < 2*size; i++)
     {
         dest[i] = (float)source[i];
     }
 }
 
 /**
- * Converts a complex double array to a complex signed 16 array.
- * @param source Pointer to complex array to read from.
- * @param dest Pointer to the array to write the signed 16 values to.
+ * Converts a complex float array into a complex double array.
+ * @param source Pointer to the array of floats to read from.
+ * @param dest Pointer to the array of doubles to write values to.
  * @param size The size of the array.
  */
-void convertComplexDoubleArrayToComplexSigned16(double * source, int16_t * dest, int size) 
+void convertComplexFloatArrayToComplexDoubleArray(float * source, double * dest, int size)
 {
     int i;
     for(i = 0; i < 2*size; i++)
     {
-        double result = source[i] * 32767.0;
+        dest[i] = (double)source[i];
+    }
+}
+
+/**
+ * Converts a complex float array to a complex signed 16 array.
+ * @param source Pointer to complex array to read from.
+ * @param dest Pointer to the array to write the signed 16 values to.
+ * @param size The size of the array.
+ */
+void convertComplexFloatArrayToComplexSigned16(float * source, int16_t * dest, int size) 
+{
+    int i;
+    for(i = 0; i < 2*size; i++)
+    {
+        float result = source[i] * 32767.0;
         if(result > 32767.0) 
         {
             dest[i] = 32767;
@@ -97,34 +97,34 @@ void convertComplexDoubleArrayToComplexSigned16(double * source, int16_t * dest,
 }
 
 /**
- * Duplicates a complex double array. 
+ * Duplicates a complex float array. 
  * @param source The address to copy from.
  * @param dest The address to copy to.
- * @param size The size of the array in complex doubles.
+ * @param size The size of the array in complex float.
  */
-void convertComplexDoubleArrayToComplexDoubleArray(double * source, double * dest, int size)
+void convertComplexFloatArrayToComplexFloatArray(float * source, float * dest, int size)
 {
-    memcpy(dest, source, sizeof(double)*size*2);
+    memcpy(dest, source, sizeof(float)*size*2);
 }
 
 /**
- * Duplicates a double array
+ * Duplicates a float array
  * @param source The address to copy from.
  * @param dest The address to copy to.
- * @param size The size of the array in doubles.
+ * @param size The size of the array in floats.
  */
-void convertDoubleArrayToDoubleArray(double * source, double * dest, int size)
+void convertFloatArrayToFloatArray(float * source, float * dest, int size)
 {
-    memcpy(dest, source, sizeof(double)*size);
+    memcpy(dest, source, sizeof(float)*size);
 }
 
 /**
- * Converts a complex double array to its magnitude squared (|z|^2).
+ * Converts a complex float array to its double magnitude squared (|z|^2).
  * @param source The source array.
  * @param dest The destination array to write the magnitudes to.
  * @param size The size of the array.
  */
-void convertComplexDoubleArrayToDoubleMag(double * source, double * dest, int size) 
+void convertComplexFloatArrayToDoubleMag(float * source, double * dest, int size) 
 {
     int i;
     for(i = 0; i < size; i++)
@@ -134,13 +134,13 @@ void convertComplexDoubleArrayToDoubleMag(double * source, double * dest, int si
 }
 
 /**
- * Converts a complex double array to its magnitude squared (|z|^2) stored 
+ * Converts a complex float array to its magnitude squared (|z|^2) stored 
  * as floating values.
  * @param source The source array.
  * @param dest The destination array to write the magnitudes into.
  * @param size The size of the array.
  */
-void convertComplexDoubleArrayToFloatMag(double * source, float * dest, int size)
+void convertComplexFloatArrayToFloatMag(float * source, float * dest, int size)
 {
     int i;
     for(i = 0; i < size; i++)
@@ -150,18 +150,18 @@ void convertComplexDoubleArrayToFloatMag(double * source, float * dest, int size
 }
 
 /**
- * Converts a complex double array to an array of the complex number's magnitudes 
+ * Converts a complex float array to an array of the complex number's magnitudes 
  * stored as signed 16 numbers.
  * @param source The location to read from.
  * @param dest The location to write to.
  * @param size The size of the array.
  */
-void convertComplexDoubleArrayToSigned16Mag(double * source, int16_t * dest, int size)
+void convertComplexFloatArrayToSigned16Mag(float * source, int16_t * dest, int size)
 {
     int i;
     for(i = 0; i < size; i++)
     {
-        double result = (source[2*i]*source[2*i] + source[2*i + 1]*source[2*i + 1]) * 32767.0;
+        float result = (source[2*i]*source[2*i] + source[2*i + 1]*source[2*i + 1]) * 32767.0;
         
         if(result > 32767.0) 
         {

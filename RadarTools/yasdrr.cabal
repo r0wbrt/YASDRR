@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                YASDRR
-version:             17.06.09
+version:             17.06.26
 synopsis:            Functionality to perform chirp radar processing 
 description:         This library and associated executables provides functionality to perform chirp pulse compression based radar.
 license:             Apache
@@ -89,7 +89,7 @@ test-suite hlint
   
 executable             yasdrr
   main-is:             Main.hs
-  ghc-options:      -Wall -Werror -O2
+  ghc-options:      -Wall -Werror
   c-sources:           src/shared/Shared/IO.c
 
   if flag(opt-fastc)

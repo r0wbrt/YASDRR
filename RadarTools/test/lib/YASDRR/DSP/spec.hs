@@ -29,13 +29,21 @@ import System.IO.Unsafe
 import YASDRR.DSP.Correlation
 import qualified Data.Vector.Unboxed as VUB
 import qualified Data.Vector as VB
+import qualified Data.Vector.Storable as VST
 import Data.List
 
 
-doubleError :: Float
-doubleError = 0.005
+maxFloatEpsilon :: Float
+maxFloatEpsilon = 0.005
 
-compareComplexFloat (real1 :+ imag1) (real2 :+ imag2) = (abs (real1 - real2) < doubleError) && (abs (imag1 - imag2) < doubleError)
+maxPercentError :: Float
+maxPercentError = 1.0
+
+compareComplexFloat (real1 :+ imag1) (real2 :+ imag2) = compareFloat real1 real2 && compareFloat imag1 imag2
+
+compareFloat ref test
+    | abs(ref) < 1 = abs (ref - test) < maxFloatEpsilon
+    | otherwise = ( (test - ref) / ref ) < maxPercentError
 
 
 correlationKernelTest_prop :: [(Float, Float)] -> [(Float, Float)] -> Bool
@@ -43,7 +51,7 @@ correlationKernelTest_prop in1 in2 = if in1 == [] then
                                         actualOutput == [] 
                                                   else all (id) $ zipWith compareComplexFloat (expectedOutput) (actualOutput)
                                                   
-    where actualOutput = correlate impulse signal
+    where actualOutput = VST.toList $ correlate (VST.fromList impulse) (VST.fromList signal)
           
           expectedOutput = map (\a -> sum $ zipWith (*) (map (conjugate) impulse) a) (init $ tails signal)
           

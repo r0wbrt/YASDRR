@@ -102,7 +102,7 @@ generateChirpUsingSettings programSettings = windowedChirp
 -- | Compresses the a returned signal using a reference chirp signal, and a pulseWindow.
 compressReturn :: VST.Vector (Complex Float) ->
                    VST.Vector (Complex Float) -> VST.Vector (Complex Float)
-compressReturn = Cor.correlateVST
+compressReturn = Cor.correlate
 
 
 -- | Generates a chirp window based on the selected signal window.

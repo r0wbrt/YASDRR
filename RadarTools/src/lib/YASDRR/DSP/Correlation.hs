@@ -34,13 +34,10 @@ number sequences.
 module YASDRR.DSP.Correlation
     (
       correlate
-    , correlateV
-    , correlateVST
     )  where
 
 import           Data.Complex
 import qualified Data.Vector.Storable  as VST
-import qualified Data.Vector.Unboxed   as VUB
 import           Foreign.ForeignPtr    (newForeignPtr, withForeignPtr)
 import           Foreign.Marshal.Alloc (finalizerFree, mallocBytes)
 import           Foreign.Ptr           (Ptr)
@@ -56,38 +53,11 @@ foreign import ccall unsafe "complexCorrelate" c_correlation ::
     ->  Ptr (Complex Float)
     ->  IO ()
 
-
--- | Complex correlation over a list.
-correlate :: [Complex Float] -> [Complex Float] -> [Complex Float]
-correlate impulse signal = map loopFunction [0..(length signal - 1)]
-
-    where conjImpulse = map conjugate impulse
-          loopFunction = correlateLoop conjImpulse signalArray (length signal) 0
-          signalArray = VUB.fromList signal
-
-
---Correlation accumulator loop, written based on profiling data
-correlateLoop :: [Complex Float] -> VUB.Vector (Complex Float) -> Int
-                        -> Complex Float -> Int -> Complex Float
-correlateLoop [] _ _ acc _  = acc
-correlateLoop impulse signal signalSize acc offset
-    | offset == signalSize = acc
-    | otherwise = acc `seq` correlateLoop (tail impulse) signal signalSize
-                    ( ( VUB.unsafeIndex signal offset * head impulse ) + acc)
-                    (offset + 1)
-
-
 -- | Does complex correlation.
-correlateV :: VUB.Vector (Complex Float) -> VUB.Vector (Complex Float)
-                    -> VUB.Vector (Complex Float)
-correlateV impulse pulse = VUB.convert $ correlateVST (VST.convert impulse) (VST.convert pulse)
-
-
--- | Does complex correlation.
-{-# NOINLINE correlateVST #-}
-correlateVST :: VST.Vector (Complex Float) -> VST.Vector (Complex Float)
+{-# NOINLINE correlate #-}
+correlate :: VST.Vector (Complex Float) -> VST.Vector (Complex Float)
                     -> VST.Vector (Complex Float)
-correlateVST impulse pulse = unsafeDupablePerformIO $ do
+correlate impulse pulse = unsafeDupablePerformIO $ do
 
     outputPtr <- mallocBytes $ sizeOf(undefined::Complex Float) * pulseSize
 

@@ -39,13 +39,8 @@ library
         cc-options: -march=native -O3
         
     hs-source-dirs:   src/lib
-    c-sources: src/lib/YASDRR/DSP/FFT.c src/lib/YASDRR/DSP/Correlation.c
-    exposed-modules:  YASDRR.DSP.FFT
-                      YASDRR.DSP.Correlation
-                      YASDRR.Math.Misc
-                      YASDRR.SDR.OFDMModulation
-                      YASDRR.SDR.Converters
-                      YASDRR.SDR.DopplerRadar
+    c-sources: src/lib/YASDRR/DSP/Correlation.c
+    exposed-modules:  YASDRR.DSP.Correlation
                       YASDRR.SDR.MorseCode
                       YASDRR.SDR.ChirpRadar
                       YASDRR.DSP.Windows
@@ -82,21 +77,6 @@ test-suite test-SDR
         test-framework,
         test-framework-hunit,
         test-framework-quickcheck2    
-        
-test-suite test-Math-Misc
-    type: exitcode-stdio-1.0
-    hs-source-dirs: src/lib/YASDRR/Math, test/lib/YASDRR/Math
-    main-is: spec.hs
-    default-language: Haskell2010
-    build-depends: 
-        base,
-        YASDRR,
-        HUnit,
-        QuickCheck,
-        test-framework,
-        test-framework-hunit,
-        test-framework-quickcheck2,
-        vector
         
 test-suite hlint
     build-depends:    base, hlint

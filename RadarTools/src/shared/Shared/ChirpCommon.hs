@@ -70,25 +70,25 @@ data ChirpOptions = ChirpOptions
  {
    -- The start frequency that the chirp "rises" from. May be negative or positive.
 
-   optStartFrequency        :: Double
+   optStartFrequency        :: Float
 
    -- The end frequency of the chirp. Can be greater then or less then the start
    -- frequency since chirps can both rise and fall.
 
- , optEndFrequency          :: Double
+ , optEndFrequency          :: Float
 
    -- Constant frequency offset of the generated signal.
 
- , optFrequencyShift        :: Double
+ , optFrequencyShift        :: Float
 
    -- The sample rate of the chirp.
 
- , optSampleRate            :: Double
+ , optSampleRate            :: Float
 
    -- The amount of time the chirp will take to go from start to end. Note, the
    -- units of this number are stored in optRiseUnit.
 
- , optRiseTime              :: Double
+ , optRiseTime              :: Float
 
    -- The actual units of rise time. May be samples or seconds.
 
@@ -130,7 +130,7 @@ data ChirpOptions = ChirpOptions
 
    -- The amplitude of the chirp.
 
- , optAmplitude             :: Double
+ , optAmplitude             :: Float
 
    -- Window to use on the generated chirp.
 
@@ -155,8 +155,8 @@ startOptions = ChirpOptions
  , optSampleRate = 44100 -- https://en.wikipedia.org/wiki/44,100_Hz
  , optRiseTime = 3
  , optRiseUnit = RiseUnitsSeconds
- , optInputSampleFormat = CL.SampleComplexDouble
- , optOutputSampleFormat = CL.SampleComplexDouble
+ , optInputSampleFormat = CL.SampleComplexFloat
+ , optOutputSampleFormat = CL.SampleComplexFloat
  , optInputReader = CL.safeReader stdin
  , optOutputWriter = B.hPut stdout
  , optCloseInput = hClose stdin
@@ -278,7 +278,7 @@ inputStartFrequency = GetOpt.Option shortOptionsNames longOptionNames (ReqArg ha
           longOptionNames = ["startFrequency", "StartFrequency"]
           shortOptionsNames = []
           argExp = "frequency * hz * s^-1"
-          handler input opts = return $ opts { optStartFrequency = read input::Double }
+          handler input opts = return $ opts { optStartFrequency = read input::Float }
 
 
 -- | --endFrequency command line option handler
@@ -288,7 +288,7 @@ inputEndFrequency = GetOpt.Option shortOptionsNames longOptionNames (ReqArg hand
           longOptionNames = ["endFrequency", "EndFrequency"]
           shortOptionsNames = []
           argExp = "frequency * hz * s^-1"
-          handler input opts = return $ opts { optEndFrequency = read input::Double }
+          handler input opts = return $ opts { optEndFrequency = read input::Float }
 
 
 -- | comamnd line handler for the frequency shift option of the signal
@@ -310,7 +310,7 @@ inputRiseTime = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handler 
           longOptionNames = ["riseTime", "RiseTime"]
           shortOptionsNames = []
           argExp = "seconds"
-          handler input opts = return $ opts { optRiseTime = read input::Double, optRiseUnit = RiseUnitsSeconds }
+          handler input opts = return $ opts { optRiseTime = read input::Float, optRiseUnit = RiseUnitsSeconds }
 
 
 -- | command line handler for setting the rise samples of the chirp.
@@ -320,7 +320,7 @@ inputRiseSamples = GetOpt.Option shortOptionsNames longOptionNames (ReqArg handl
           longOptionNames = ["riseSamples", "RiseSamples"]
           shortOptionsNames = []
           argExp = "samples"
-          handler input opts = return $ opts {optRiseTime = read input::Double, optRiseUnit = RiseUnitsSamples  }
+          handler input opts = return $ opts {optRiseTime = read input::Float, optRiseUnit = RiseUnitsSamples  }
 
 
 -- | command line handler for setting the input signal format of the signal.
@@ -412,7 +412,7 @@ inputFileOutput = CL.inputFileOutput handler
 
 -- | Calculates the length of the signal in samples based on the
 --   the unit of the input rise time.
-calculateSignalLength :: ChirpOptions -> Double
+calculateSignalLength :: ChirpOptions -> Float
 calculateSignalLength settings = case optRiseUnit settings of
                                       RiseUnitsSeconds -> rate * input
                                       RiseUnitsSamples -> input
@@ -421,7 +421,7 @@ calculateSignalLength settings = case optRiseUnit settings of
 
 
 -- | Generates the signal window.
-getChirpWindow :: SignalWindow -> Int -> VUB.Vector Double
+getChirpWindow :: SignalWindow -> Int -> VUB.Vector Float
 getChirpWindow window n = case window of
                           HammingWindow -> Windows.hammingWindowV n
                           NoWindow      -> VUB.replicate n 1.0

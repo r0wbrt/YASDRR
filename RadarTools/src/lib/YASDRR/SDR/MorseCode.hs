@@ -131,7 +131,7 @@ convertStringToMorseCode input =
 
 
 -- | Converts wpm to dot length as a fraction of a second.
-wpmToDotLength :: Int -> Double
+wpmToDotLength :: Int -> Float
 wpmToDotLength wpm = 1.2 / fromIntegral wpm
 
 

@@ -1,3 +1,4 @@
 /RadarTools/dist/*
 .directory
 *.dat
+/RadarTools/.cabal-sandbox/*

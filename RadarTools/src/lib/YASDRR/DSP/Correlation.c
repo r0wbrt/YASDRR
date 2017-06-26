@@ -25,23 +25,23 @@ limitations under the License.
  * the signal array in size.
  */
 __attribute__((hot))
-void complexCorrelate(int kSize, int sSize, double * kernel, double * signal, double * output) 
+void complexCorrelate(int kSize, int sSize, float * kernel, float * signal, float * output) 
 {
     int i;
     int j;
-    double Raccumulator;
-    double Iaccumulator;
+    float Raccumulator;
+    float Iaccumulator;
     for(i = 0; i < sSize; i++) 
     {
         Raccumulator = 0;
         Iaccumulator = 0;
         for(j = 0; j < kSize && (j+i) < sSize; j++)
         {
-            double a = kernel[2*j];
-            double b = kernel[2*j + 1];
+            float a = kernel[2*j];
+            float b = kernel[2*j + 1];
             
-            double c = signal[2*i + 2*j];
-            double d = signal[2*i + 2*j + 1];
+            float c = signal[2*i + 2*j];
+            float d = signal[2*i + 2*j + 1];
             
             //Signs are flipped because the kernel is conjugated.
             Raccumulator += a * c  + b * d;

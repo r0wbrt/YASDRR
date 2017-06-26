@@ -47,6 +47,7 @@ library
 
 test-suite test-DSP
     type: exitcode-stdio-1.0
+    ghc-options:      -Wall -Werror
     hs-source-dirs: src/lib/YASDRR/DSP, test/lib/YASDRR/DSP
     main-is: spec.hs
     default-language: Haskell2010
@@ -64,6 +65,7 @@ test-suite test-DSP
 test-suite test-SDR
     type: exitcode-stdio-1.0
     hs-source-dirs: src/lib/YASDRR/SDR, test/lib/YASDRR/SDR
+    ghc-options:      -Wall -Werror
     main-is: spec.hs
     default-language: Haskell2010
     build-depends: 

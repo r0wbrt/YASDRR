@@ -19,14 +19,14 @@ limitations under the License.
 
 module Main (main) where
 
-import Language.Haskell.HLint (hlint)
-import System.Exit (exitFailure, exitSuccess)
+import           Language.Haskell.HLint (hlint)
+import           System.Exit            (exitFailure, exitSuccess)
 
 arguments :: [String]
 arguments =
-    [ "src"  ]
+    [ "src", "test"  ]
 
 main :: IO ()
 main = do
     hints <- hlint arguments
-    if null hints then exitSuccess else exitFailure 
+    if null hints then exitSuccess else exitFailure

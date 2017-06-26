@@ -17,20 +17,13 @@ limitations under the License.
 -}
 
 
-import Test.Framework (defaultMain, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck
-import Test.Framework.Providers.HUnit
-import Test.HUnit
-import Data.Array
-import Data.Complex
-import Data.Word
-import System.IO.Unsafe
-import YASDRR.DSP.Correlation
-import qualified Data.Vector.Unboxed as VUB
-import qualified Data.Vector as VB
-import qualified Data.Vector.Storable as VST
-import Data.List
+import           Data.Complex
+import           Data.List
+import qualified Data.Vector.Storable                 as VST
+import           Test.Framework                       (Test, defaultMain,
+                                                       testGroup)
+import           Test.Framework.Providers.QuickCheck2 (testProperty)
+import           YASDRR.DSP.Correlation
 
 
 maxFloatEpsilon :: Float
@@ -39,28 +32,32 @@ maxFloatEpsilon = 0.005
 maxPercentError :: Float
 maxPercentError = 1.0
 
+
+compareComplexFloat :: Complex Float -> Complex Float -> Bool
 compareComplexFloat (real1 :+ imag1) (real2 :+ imag2) = compareFloat real1 real2 && compareFloat imag1 imag2
 
+compareFloat :: Float -> Float -> Bool
 compareFloat ref test
-    | abs(ref) < 1 = abs (ref - test) < maxFloatEpsilon
+    | abs ref < 1 = abs (ref - test) < maxFloatEpsilon
     | otherwise = ( (test - ref) / ref ) < maxPercentError
 
 
-correlationKernelTest_prop :: [(Float, Float)] -> [(Float, Float)] -> Bool
-correlationKernelTest_prop in1 in2 = if in1 == [] then
-                                        actualOutput == [] 
-                                                  else all (id) $ zipWith compareComplexFloat (expectedOutput) (actualOutput)
-                                                  
+correlationKernelTestProp :: [(Float, Float)] -> [(Float, Float)] -> Bool
+correlationKernelTestProp in1 in2 = if null in1 then
+                                        null actualOutput
+                                                  else and $ zipWith compareComplexFloat expectedOutput actualOutput
+
     where actualOutput = VST.toList $ correlate (VST.fromList impulse) (VST.fromList signal)
-          
-          expectedOutput = map (\a -> sum $ zipWith (*) (map (conjugate) impulse) a) (init $ tails signal)
-          
-          signal = map (\(a, b) -> (a :+ b)) in1
-          impulse = map (\(a, b) -> (a :+ b)) in2
-          
-tests = [ 
+
+          expectedOutput = map (sum . zipWith (*) (map conjugate impulse)) (init $ tails signal)
+
+          signal = map (uncurry (:+)) in1
+          impulse = map (uncurry (:+)) in2
+
+tests :: [Test]
+tests = [
           testGroup "Correlation" [
-           testProperty "Random Correlation test" correlationKernelTest_prop
+           testProperty "Random Correlation test" correlationKernelTestProp
            ]
         ]
 
